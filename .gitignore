@@ -1,0 +1,94 @@
+# -*- mode: gitignore; -*-
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# npm lock file
+package-lock.json
+
+# Intellij/WebStorm IDE
+/.idea
+
+# Visual Studio Code configuration
+/jsconfig.json
+
+# Org-mode
+.org-id-locations
+*_archive
+
+# flymake-mode
+*_flymake.*
+
+# eshell files
+/eshell/history
+/eshell/lastdir
+
+# elpa packages
+/elpa/
+
+# reftex files
+*.rel
+
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+build
+CMakeCache.txt
+CMakeFiles
+cmake_install.cmake
+compile_commands.json
+node_modules
+*.mem
+ftpsync.settings
+*.log
+*.png
+Gemfile
+Gemfile.lock
+Vagrantfile
+
+.DS_Store
+
+.vscode
+
+.idea
+cmake-build-debug
+.ipynb_checkpoints
+
+# CPP Compile
+/include/boost
+obj
