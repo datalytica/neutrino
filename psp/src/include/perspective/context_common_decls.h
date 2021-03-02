@@ -11,8 +11,8 @@ t_index get_row_count() const;
 
 t_index get_column_count() const;
 
-t_tscalvec get_data(
-    t_tvidx start_row, t_tvidx end_row, t_tvidx start_col, t_tvidx end_col) const;
+t_tscalvec get_data(t_tvidx start_row, t_tvidx end_row, t_tvidx start_col,
+    t_tvidx end_col) const;
 
 void sort_by(const t_sortsvec& sortby);
 

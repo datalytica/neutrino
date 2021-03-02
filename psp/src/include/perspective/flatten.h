@@ -9,9 +9,11 @@
 
 #pragma once
 
-namespace perspective {
+namespace perspective
+{
 
-class t_flattener {
+class t_flattener
+{
     static void op();
 };
 } // namespace perspective

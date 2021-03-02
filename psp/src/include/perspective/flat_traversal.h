@@ -24,9 +24,11 @@
 #include <set>
 #include <unordered_map>
 
-namespace perspective {
+namespace perspective
+{
 
-class PERSPECTIVE_EXPORT t_ftrav {
+class PERSPECTIVE_EXPORT t_ftrav
+{
     typedef std::unordered_map<t_tscalar, t_index> t_pkeyidx_map;
     typedef std::unordered_map<t_tscalar, t_mselem> t_pkmselem_map;
 
@@ -44,20 +46,21 @@ public:
 
     t_tscalar get_pkey(t_tvidx idx) const;
 
-    void fill_sort_elem(t_gstate_csptr state, const t_config& config, const t_tscalvec& row,
-        t_mselem& out_elem) const;
+    void fill_sort_elem(t_gstate_csptr state, const t_config& config,
+        const t_tscalvec& row, t_mselem& out_elem) const;
 
-    void fill_sort_elem(
-        t_gstate_csptr state, const t_config& config, t_tscalar pkey, t_mselem& out_elem);
+    void fill_sort_elem(t_gstate_csptr state, const t_config& config,
+        t_tscalar pkey, t_mselem& out_elem);
 
-    void sort_by(t_gstate_csptr state, const t_config& config, const t_sortsvec& sortby);
+    void sort_by(
+        t_gstate_csptr state, const t_config& config, const t_sortsvec& sortby);
 
     t_index size() const;
 
     void get_row_indices(const t_tscalset& pkeys, t_tscaltvimap& out_map) const;
 
-    void get_row_indices(
-        t_tvidx bidx, t_tvidx eidx, const t_tscalset& pkeys, t_tscaltvimap& out_map) const;
+    void get_row_indices(t_tvidx bidx, t_tvidx eidx, const t_tscalset& pkeys,
+        t_tscaltvimap& out_map) const;
 
     void reset();
 
@@ -71,7 +74,8 @@ public:
 
     void add_row(t_gstate_csptr state, const t_config& config, t_tscalar pkey);
 
-    void update_row(t_gstate_csptr state, const t_config& config, t_tscalar pkey);
+    void update_row(
+        t_gstate_csptr state, const t_config& config, t_tscalar pkey);
 
     void delete_row(t_tscalar pkey);
 
@@ -80,8 +84,8 @@ public:
 
     void reset_step_state();
 
-    t_uindex lower_bound_row_idx(
-        t_gstate_csptr state, const t_config& config, const t_tscalvec& row) const;
+    t_uindex lower_bound_row_idx(t_gstate_csptr state, const t_config& config,
+        const t_tscalvec& row) const;
 
     t_index get_row_idx(t_tscalar pkey) const;
 

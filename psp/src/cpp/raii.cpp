@@ -16,27 +16,35 @@
 #endif
 #endif
 
-namespace perspective {
+namespace perspective
+{
 
 t_file_handle::t_file_handle(t_handle value)
-    : m_value(value) {}
+    : m_value(value)
+{
+}
 
 t_handle
-t_file_handle::value() {
+t_file_handle::value()
+{
     return m_value;
 }
 
 t_mmap_handle::t_mmap_handle(void* value, t_uindex len)
     : m_value(value)
-    , m_len(len) {}
+    , m_len(len)
+{
+}
 
 void*
-t_mmap_handle::value() {
+t_mmap_handle::value()
+{
     return m_value;
 }
 
 t_uindex
-t_mmap_handle::len() const {
+t_mmap_handle::len() const
+{
     return m_len;
 }
 

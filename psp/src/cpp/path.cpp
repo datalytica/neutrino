@@ -10,19 +10,24 @@
 #include <perspective/first.h>
 #include <perspective/path.h>
 
-namespace perspective {
+namespace perspective
+{
 t_path::t_path() {}
 
 t_path::t_path(const t_tscalvec& path)
-    : m_path(path) {}
+    : m_path(path)
+{
+}
 
 const t_tscalvec&
-t_path::path() const {
+t_path::path() const
+{
     return m_path;
 }
 
 t_tscalvec&
-t_path::path() {
+t_path::path()
+{
     return m_path;
 }
 

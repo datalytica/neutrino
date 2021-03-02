@@ -33,14 +33,17 @@ static thread_local perspective::t_instrec th_trace_buffer[THR_BUFFER_NELEMS];
 static thread_local perspective::t_int32 th_traceidx;
 static thread_local FILE* th_file;
 
-namespace perspective {
+namespace perspective
+{
 t_trace::t_trace() { write_record(TRACE_TYPE_FNTRACE_BEGIN); }
 
 t_trace::~t_trace() { write_record(TRACE_TYPE_FNTRACE_END); }
 
 void
-t_trace::write_record(t_trace_type ttype) const {
-    if (th_traceidx == THR_BUFFER_NELEMS) {
+t_trace::write_record(t_trace_type ttype) const
+{
+    if (th_traceidx == THR_BUFFER_NELEMS)
+    {
         flush_thbuffer(THR_BUFFER_NELEMS);
         th_traceidx = 0;
     }
@@ -48,12 +51,14 @@ t_trace::write_record(t_trace_type ttype) const {
     ptr = th_trace_buffer + th_traceidx;
     ptr->m_trace_type = ttype;
     ptr->m_time = psp_curtime();
-    ptr->t_fntrace.m_fn = __builtin_extract_return_addr(__builtin_return_address(0));
+    ptr->t_fntrace.m_fn
+        = __builtin_extract_return_addr(__builtin_return_address(0));
     ++th_traceidx;
 }
 
 t_uindex
-get_instrec_size() {
+get_instrec_size()
+{
     return sizeof(t_instrec);
 }
 

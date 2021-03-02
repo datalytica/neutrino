@@ -16,9 +16,11 @@
 #include <perspective/schema_column.h>
 #include <vector>
 
-namespace perspective {
+namespace perspective
+{
 
-struct PERSPECTIVE_EXPORT t_col_name_type {
+struct PERSPECTIVE_EXPORT t_col_name_type
+{
     t_col_name_type();
     t_col_name_type(const t_str& name, t_dtype type);
     t_str m_name;
@@ -27,7 +29,8 @@ struct PERSPECTIVE_EXPORT t_col_name_type {
 
 typedef std::vector<t_col_name_type> t_col_name_type_vec;
 
-struct PERSPECTIVE_EXPORT t_aggspec_recipe {
+struct PERSPECTIVE_EXPORT t_aggspec_recipe
+{
     t_aggspec_recipe() {}
     t_str m_name;
     t_str m_disp_name;
@@ -44,7 +47,8 @@ struct PERSPECTIVE_EXPORT t_aggspec_recipe {
 
 typedef std::vector<t_aggspec_recipe> t_aggspec_recipevec;
 
-class PERSPECTIVE_EXPORT t_aggspec {
+class PERSPECTIVE_EXPORT t_aggspec
+{
 public:
     t_aggspec();
 
@@ -52,7 +56,8 @@ public:
 
     t_aggspec(const t_aggspec_recipe& v);
 
-    t_aggspec(const t_str& aggname, t_aggtype agg, const t_depvec& dependencies);
+    t_aggspec(
+        const t_str& aggname, t_aggtype agg, const t_depvec& dependencies);
 
     t_aggspec(const t_str& aggname, t_aggtype agg, const t_str& dep);
 
@@ -84,7 +89,8 @@ public:
     t_svec get_output_depnames() const;
 
     t_col_name_type_vec get_output_specs(const t_schema& schema) const;
-    t_col_name_type_vec mk_col_name_type_vec(const t_str& name, t_dtype dtype) const;
+    t_col_name_type_vec mk_col_name_type_vec(
+        const t_str& name, t_dtype dtype) const;
     t_bool is_combiner_agg() const;
     t_bool is_reducer_agg() const;
 

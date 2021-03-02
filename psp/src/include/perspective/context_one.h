@@ -15,9 +15,11 @@
 #include <perspective/traversal_nodes.h>
 #include <perspective/sort_specification.h>
 
-namespace perspective {
+namespace perspective
+{
 
-class PERSPECTIVE_EXPORT t_ctx1 : public t_ctxbase<t_ctx1> {
+class PERSPECTIVE_EXPORT t_ctx1 : public t_ctxbase<t_ctx1>
+{
 public:
     t_ctx1();
 

@@ -13,13 +13,16 @@
 #include <cstdlib>
 #include <cstring>
 
-namespace perspective {
+namespace perspective
+{
 
-class t_simple_bitmask {
+class t_simple_bitmask
+{
 public:
     t_simple_bitmask(t_uindex nentries)
         : m_nentries(nentries)
-        , m_ptr(0) {
+        , m_ptr(0)
+    {
         if (!nentries)
             return;
 
@@ -29,7 +32,8 @@ public:
     ~t_simple_bitmask() { free(m_ptr); }
 
     inline t_bool
-    is_set(t_uindex idx) const {
+    is_set(t_uindex idx) const
+    {
         if (!m_ptr || idx >= m_nentries)
             return false;
 
@@ -40,7 +44,8 @@ public:
     }
 
     inline void
-    set(t_uindex idx) {
+    set(t_uindex idx)
+    {
         if (!m_ptr || idx >= m_nentries)
             return;
         t_uindex byte_idx = get_byte_idx(idx);
@@ -49,7 +54,8 @@ public:
     }
 
     inline void
-    clear(t_uindex idx) {
+    clear(t_uindex idx)
+    {
         if (!m_ptr || idx >= m_nentries)
             return;
         t_uindex byte_idx = get_byte_idx(idx);
@@ -58,38 +64,45 @@ public:
     }
 
     void*
-    get_ptr() {
+    get_ptr()
+    {
         return m_ptr;
     }
 
     t_uindex
-    size() const {
+    size() const
+    {
         return m_nentries;
     }
 
 private:
     static t_uindex
-    calc_capacity(t_uindex nentries) {
+    calc_capacity(t_uindex nentries)
+    {
         return (nentries + CHAR_BIT - 1) / CHAR_BIT;
     }
 
     static t_uindex
-    get_byte_idx(t_uindex idx) {
+    get_byte_idx(t_uindex idx)
+    {
         return idx / CHAR_BIT;
     }
 
     static t_uindex
-    get_bit_idx(t_uindex idx) {
+    get_bit_idx(t_uindex idx)
+    {
         return idx % CHAR_BIT;
     }
 
     t_uint8&
-    get_block(t_uindex bidx) {
+    get_block(t_uindex bidx)
+    {
         return reinterpret_cast<t_uint8*>(m_ptr)[bidx];
     }
 
     const t_uint8&
-    get_block(t_uindex bidx) const {
+    get_block(t_uindex bidx) const
+    {
         return reinterpret_cast<const t_uint8*>(m_ptr)[bidx];
     }
 

@@ -14,9 +14,11 @@
 #include <perspective/scalar.h>
 #include <perspective/exports.h>
 
-namespace perspective {
+namespace perspective
+{
 
-class PERSPECTIVE_EXPORT t_range {
+class PERSPECTIVE_EXPORT t_range
+{
 public:
     t_range(t_uindex bridx, t_uindex eridx);
 
@@ -26,8 +28,8 @@ public:
 
     t_range(const t_tscalvec& brpath, const t_tscalvec& erpath);
 
-    t_range(const t_tscalvec& brpath, const t_tscalvec& erpath, const t_tscalvec& bcpath,
-        const t_tscalvec& ecpath);
+    t_range(const t_tscalvec& brpath, const t_tscalvec& erpath,
+        const t_tscalvec& bcpath, const t_tscalvec& ecpath);
 
     t_range(const t_str& expr_name);
 

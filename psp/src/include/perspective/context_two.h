@@ -17,9 +17,11 @@
 #include <perspective/sparse_tree_node.h>
 #include <perspective/traversal_nodes.h>
 
-namespace perspective {
+namespace perspective
+{
 
-class PERSPECTIVE_EXPORT t_ctx2 : public t_ctxbase<t_ctx2> {
+class PERSPECTIVE_EXPORT t_ctx2 : public t_ctxbase<t_ctx2>
+{
 public:
 #include <perspective/context_common_decls.h>
     t_ctx2();

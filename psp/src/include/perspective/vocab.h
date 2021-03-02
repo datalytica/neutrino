@@ -19,16 +19,20 @@
 #include <cmath>
 #include <unordered_map>
 
-namespace perspective {
+namespace perspective
+{
 
-class PERSPECTIVE_EXPORT t_vocab {
-    typedef std::unordered_map<const char*, t_uindex, t_cchar_umap_hash, t_cchar_umap_cmp>
+class PERSPECTIVE_EXPORT t_vocab
+{
+    typedef std::unordered_map<const char*, t_uindex, t_cchar_umap_hash,
+        t_cchar_umap_cmp>
         t_sidxmap;
 
 public:
     t_vocab();
     t_vocab(const t_column_recipe& r);
-    t_vocab(const t_lstore_recipe& vlendata_recipe, const t_lstore_recipe& extents_recipe);
+    t_vocab(const t_lstore_recipe& vlendata_recipe,
+        const t_lstore_recipe& extents_recipe);
     void rebuild_map();
     void init(t_bool from_recipe);
     t_lstore_sptr get_vlendata();
@@ -37,7 +41,8 @@ public:
     t_uindex nbytes() const;
     void verify() const;
     void verify_size() const;
-    void fill(const t_lstore& o_vlen, const t_lstore& o_extents, t_uindex vlenidx);
+    void fill(
+        const t_lstore& o_vlen, const t_lstore& o_extents, t_uindex vlenidx);
     t_extent_pair* get_extents_base();
     t_uchar* get_vlen_base();
     void set_vlenidx(t_uindex idx);

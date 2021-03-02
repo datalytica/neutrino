@@ -10,21 +10,24 @@
 #include <perspective/first.h>
 #include <perspective/port.h>
 
-namespace perspective {
+namespace perspective
+{
 
 t_port::t_port(t_port_mode mode, const t_schema& schema)
     : m_mode(mode)
     , m_schema(schema)
     , m_init(false)
     , m_table(nullptr)
-    , m_prevsize(0) {
+    , m_prevsize(0)
+{
     LOG_CONSTRUCTOR("t_port");
 }
 
 t_port::~t_port() { LOG_DESTRUCTOR("t_port"); }
 
 void
-t_port::init() {
+t_port::init()
+{
     m_table = nullptr;
     m_table = std::make_shared<t_table>(
         "", "", m_schema, DEFAULT_EMPTY_CAPACITY, BACKING_STORE_MEMORY);
@@ -33,28 +36,33 @@ t_port::init() {
 }
 
 t_table_sptr
-t_port::get_table() {
+t_port::get_table()
+{
     return m_table;
 }
 
 void
-t_port::set_table(t_table_sptr table) {
+t_port::set_table(t_table_sptr table)
+{
     m_table = nullptr;
     m_table = table;
 }
 
 void
-t_port::send(t_table_csptr table) {
+t_port::send(t_table_csptr table)
+{
     m_table->append(*table.get());
 }
 
 void
-t_port::send(const t_table& table) {
+t_port::send(const t_table& table)
+{
     m_table->append(table);
 }
 
 t_schema
-t_port::get_schema() const {
+t_port::get_schema() const
+{
     return m_schema;
 }
 
@@ -84,9 +92,12 @@ t_port::release_or_clear()
 
     t_uindex size = m_table->size();
 
-    if (static_cast<t_float64>(size) < 0.4 * t_float64(m_prevsize)) {
+    if (static_cast<t_float64>(size) < 0.4 * t_float64(m_prevsize))
+    {
         m_table->clear();
-    } else {
+    }
+    else
+    {
         release();
     }
 

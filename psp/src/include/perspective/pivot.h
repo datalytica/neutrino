@@ -14,9 +14,11 @@
 #include <perspective/raw_types.h>
 #include <perspective/exports.h>
 
-namespace perspective {
+namespace perspective
+{
 
-struct PERSPECTIVE_EXPORT t_pivot_recipe {
+struct PERSPECTIVE_EXPORT t_pivot_recipe
+{
     t_pivot_recipe() {}
     t_str m_colname;
     t_str m_name;
@@ -25,7 +27,8 @@ struct PERSPECTIVE_EXPORT t_pivot_recipe {
 
 typedef std::vector<t_pivot_recipe> t_pivot_recipevec;
 
-class PERSPECTIVE_EXPORT t_pivot {
+class PERSPECTIVE_EXPORT t_pivot
+{
 public:
     t_pivot(const t_pivot_recipe& r);
     t_pivot(const t_str& column);

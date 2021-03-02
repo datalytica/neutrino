@@ -13,13 +13,15 @@
 #include <perspective/exports.h>
 #include <perspective/scalar.h>
 
-namespace perspective {
+namespace perspective
+{
 
 struct t_multisorter;
 
 PERSPECTIVE_EXPORT void argsort(t_idxvec& output, const t_multisorter& sorter);
 
-struct PERSPECTIVE_EXPORT t_argsort_comparator {
+struct PERSPECTIVE_EXPORT t_argsort_comparator
+{
     t_argsort_comparator(const t_tscalvec& v, const t_sorttype& sort_type);
 
     bool operator()(t_index a, t_index b) const;

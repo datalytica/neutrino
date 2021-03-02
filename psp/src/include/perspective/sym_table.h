@@ -12,10 +12,13 @@
 #include <perspective/scalar.h>
 #include <unordered_map>
 
-namespace perspective {
+namespace perspective
+{
 
-class t_symtable {
-    typedef std::unordered_map<const char*, const char*, t_cchar_umap_hash, t_cchar_umap_cmp>
+class t_symtable
+{
+    typedef std::unordered_map<const char*, const char*, t_cchar_umap_hash,
+        t_cchar_umap_cmp>
         t_mapping;
 
 public:

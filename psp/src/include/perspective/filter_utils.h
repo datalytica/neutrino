@@ -13,16 +13,23 @@
 #include <perspective/table.h>
 #include <perspective/mask.h>
 
-namespace perspective {
+namespace perspective
+{
 
 inline t_mask
-filter_table_for_config(const t_table& tbl, const t_config& config) {
+filter_table_for_config(const t_table& tbl, const t_config& config)
+{
 
-    switch (config.get_fmode()) {
-        case FMODE_SIMPLE_CLAUSES: {
+    switch (config.get_fmode())
+    {
+        case FMODE_SIMPLE_CLAUSES:
+        {
             return tbl.filter_cpp(config.get_combiner(), config.get_fterms());
-        } break;
-        default: {}
+        }
+        break;
+        default:
+        {
+        }
     }
 
     return t_mask(tbl.size());

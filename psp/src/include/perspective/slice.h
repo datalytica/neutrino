@@ -17,9 +17,11 @@
 #include <perspective/data.h>
 #include <perspective/path.h>
 
-namespace perspective {
+namespace perspective
+{
 
-class PERSPECTIVE_EXPORT t_slice {
+class PERSPECTIVE_EXPORT t_slice
+{
 public:
     const t_range& range() const;
     const t_pathvec& row_paths() const;

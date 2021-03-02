@@ -12,9 +12,11 @@
 #include <perspective/raw_types.h>
 #include <perspective/base.h>
 
-namespace perspective {
+namespace perspective
+{
 
-class t_file_handle {
+class t_file_handle
+{
     t_handle m_value;
 
 public:
@@ -25,7 +27,8 @@ public:
     void release();
 };
 
-class t_mmap_handle {
+class t_mmap_handle
+{
     void* m_value;
     t_uindex m_len;
 

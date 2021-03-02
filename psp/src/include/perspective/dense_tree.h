@@ -24,17 +24,20 @@
 // Pass filter in and store the filter on the tree
 // as a shared ptr
 
-namespace perspective {
+namespace perspective
+{
 
 class t_filter;
 
-class t_dtree {
+class t_dtree
+{
 public:
     typedef t_dense_tnode t_tnode;
     typedef std::vector<t_tnode> t_tnodevec;
     typedef t_table_csptr t_dssptr;
 
-    t_dtree(t_dssptr ds, const t_pivotvec& pivots, const t_sspvec& sortby_columns);
+    t_dtree(
+        t_dssptr ds, const t_pivotvec& pivots, const t_sspvec& sortby_columns);
     t_dtree(const t_str& dirname, t_dssptr ds, const t_pivotvec& pivots,
         t_backing_store backing_store, const t_sspvec& sortby_columns);
 
@@ -48,7 +51,8 @@ public:
 
     t_uindex size() const;
 
-    t_tscalar _get_value(const t_filter& filter, t_ptidx nidx, t_bool sort_value) const;
+    t_tscalar _get_value(
+        const t_filter& filter, t_ptidx nidx, t_bool sort_value) const;
     t_tscalar get_value(const t_filter& filter, t_ptidx nidx) const;
     t_tscalar get_sortby_value(const t_filter& filter, t_ptidx nidx) const;
 

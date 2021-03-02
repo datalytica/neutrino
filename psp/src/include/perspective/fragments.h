@@ -10,7 +10,10 @@
 #pragma once
 #include <perspective/first.h>
 
-namespace perspective {
-class t_dfragments {};
+namespace perspective
+{
+class t_dfragments
+{
+};
 
 } // end namespace perspective

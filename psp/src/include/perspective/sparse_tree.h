@@ -35,7 +35,8 @@ SUPPRESS_WARNINGS_VC(4503)
 #include <sstream>
 #include <queue>
 
-namespace perspective {
+namespace perspective
+{
 
 class t_gstate;
 class t_dtree_ctx;
@@ -48,23 +49,38 @@ using namespace boost::multi_index;
 typedef std::pair<t_depth, t_ptidx> t_dptipair;
 typedef std::vector<t_dptipair> t_dptipairvec;
 
-struct by_idx {};
+struct by_idx
+{
+};
 
-struct by_depth {};
+struct by_depth
+{
+};
 
-struct by_pidx {};
+struct by_pidx
+{
+};
 
-struct by_pidx_hash {};
+struct by_pidx_hash
+{
+};
 
-struct by_nstrands {};
+struct by_nstrands
+{
+};
 
-struct by_idx_pkey {};
+struct by_idx_pkey
+{
+};
 
-struct by_idx_lfidx {};
+struct by_idx_lfidx
+{
+};
 
 PERSPECTIVE_EXPORT t_tscalar get_dominant(t_tscalvec& values);
 
-struct t_build_strand_table_common_rval {
+struct t_build_strand_table_common_rval
+{
     t_schema m_flattened_schema;
     t_schema m_strand_schema;
     t_schema m_aggschema;
@@ -74,28 +90,34 @@ struct t_build_strand_table_common_rval {
 };
 
 typedef multi_index_container<t_stnode,
-    indexed_by<ordered_unique<tag<by_idx>, BOOST_MULTI_INDEX_MEMBER(t_stnode, t_uindex, m_idx)>,
-        hashed_non_unique<tag<by_depth>, BOOST_MULTI_INDEX_MEMBER(t_stnode, t_uint8, m_depth)>,
+    indexed_by<ordered_unique<tag<by_idx>,
+                   BOOST_MULTI_INDEX_MEMBER(t_stnode, t_uindex, m_idx)>,
+        hashed_non_unique<tag<by_depth>,
+            BOOST_MULTI_INDEX_MEMBER(t_stnode, t_uint8, m_depth)>,
         hashed_non_unique<tag<by_nstrands>,
             BOOST_MULTI_INDEX_MEMBER(t_stnode, t_uindex, m_nstrands)>,
         ordered_unique<tag<by_pidx>,
-            composite_key<t_stnode, BOOST_MULTI_INDEX_MEMBER(t_stnode, t_uindex, m_pidx),
+            composite_key<t_stnode,
+                BOOST_MULTI_INDEX_MEMBER(t_stnode, t_uindex, m_pidx),
                 BOOST_MULTI_INDEX_MEMBER(t_stnode, t_tscalar, m_sort_value),
                 BOOST_MULTI_INDEX_MEMBER(t_stnode, t_tscalar, m_value)>>,
         ordered_unique<tag<by_pidx_hash>,
-            composite_key<t_stnode, BOOST_MULTI_INDEX_MEMBER(t_stnode, t_uindex, m_pidx),
+            composite_key<t_stnode,
+                BOOST_MULTI_INDEX_MEMBER(t_stnode, t_uindex, m_pidx),
                 BOOST_MULTI_INDEX_MEMBER(t_stnode, t_tscalar, m_value)>>>>
     t_treenodes;
 
 typedef multi_index_container<t_stpkey,
     indexed_by<ordered_unique<tag<by_idx_pkey>,
-        composite_key<t_stpkey, BOOST_MULTI_INDEX_MEMBER(t_stpkey, t_uindex, m_idx),
+        composite_key<t_stpkey,
+            BOOST_MULTI_INDEX_MEMBER(t_stpkey, t_uindex, m_idx),
             BOOST_MULTI_INDEX_MEMBER(t_stpkey, t_tscalar, m_pkey)>>>>
     t_idxpkey;
 
 typedef multi_index_container<t_stleaves,
     indexed_by<ordered_unique<tag<by_idx_lfidx>,
-        composite_key<t_stleaves, BOOST_MULTI_INDEX_MEMBER(t_stleaves, t_uindex, m_idx),
+        composite_key<t_stleaves,
+            BOOST_MULTI_INDEX_MEMBER(t_stleaves, t_uindex, m_idx),
             BOOST_MULTI_INDEX_MEMBER(t_stleaves, t_uindex, m_lfidx)>>>>
     t_idxleaf;
 
@@ -115,7 +137,8 @@ typedef t_idxpkey::index<by_idx_pkey>::type::iterator iter_by_idx_pkey;
 
 typedef std::pair<iter_by_idx_pkey, iter_by_idx_pkey> t_by_idx_pkey_ipair;
 
-struct PERSPECTIVE_EXPORT t_agg_update_info {
+struct PERSPECTIVE_EXPORT t_agg_update_info
+{
     t_colcptrvec m_src;
     t_colptrvec m_dst;
     t_aggspecvec m_aggspecs;
@@ -123,8 +146,10 @@ struct PERSPECTIVE_EXPORT t_agg_update_info {
     std::vector<t_uindex> m_dst_topo_sorted;
 };
 
-struct t_tree_unify_rec {
-    t_tree_unify_rec(t_uindex sptidx, t_uindex daggidx, t_uindex saggidx, t_uindex nstrands);
+struct t_tree_unify_rec
+{
+    t_tree_unify_rec(
+        t_uindex sptidx, t_uindex daggidx, t_uindex saggidx, t_uindex nstrands);
 
     t_uindex m_sptidx;
     t_uindex m_daggidx;
@@ -134,7 +159,8 @@ struct t_tree_unify_rec {
 
 typedef std::vector<t_tree_unify_rec> t_tree_unify_rec_vec;
 
-class PERSPECTIVE_EXPORT t_stree {
+class PERSPECTIVE_EXPORT t_stree
+{
 public:
     typedef const t_stree* t_cptr;
     typedef std::shared_ptr<t_stree> t_sptr;
@@ -144,8 +170,8 @@ public:
 
     typedef std::map<const char*, const char*, t_cmp_charptr> t_sidxmap;
 
-    t_stree(const t_pivotvec& pivots, const t_aggspecvec& aggspecs, const t_schema& schema,
-        const t_config& cfg);
+    t_stree(const t_pivotvec& pivots, const t_aggspecvec& aggspecs,
+        const t_schema& schema, const t_config& cfg);
     ~t_stree();
 
     void init();
@@ -155,28 +181,34 @@ public:
     t_tscalar get_value(t_tvidx idx) const;
     t_tscalar get_sortby_value(t_tvidx idx) const;
 
-    void build_strand_table_phase_1(t_tscalar pkey, t_op op, t_uindex idx, t_uindex npivots,
-        t_uindex strand_count_idx, t_uindex aggcolsize, t_bool force_current_row,
-        const t_colcptrvec& piv_pcolcontexts, const t_colcptrvec& piv_tcols,
-        const t_colcptrvec& agg_ccols, const t_colcptrvec& agg_dcols, t_colptrvec& piv_scols,
+    void build_strand_table_phase_1(t_tscalar pkey, t_op op, t_uindex idx,
+        t_uindex npivots, t_uindex strand_count_idx, t_uindex aggcolsize,
+        t_bool force_current_row, const t_colcptrvec& piv_pcolcontexts,
+        const t_colcptrvec& piv_tcols, const t_colcptrvec& agg_ccols,
+        const t_colcptrvec& agg_dcols, t_colptrvec& piv_scols,
         t_colptrvec& agg_acols, t_column* agg_scountspar, t_column* spkey,
-        t_uindex& insert_count, t_bool& pivots_neq, const t_svec& pivot_like) const;
-
-    void build_strand_table_phase_2(t_tscalar pkey, t_uindex idx, t_uindex npivots,
-        t_uindex strand_count_idx, t_uindex aggcolsize, const t_colcptrvec& piv_pcols,
-        const t_colcptrvec& agg_pcols, t_colptrvec& piv_scols, t_colptrvec& agg_acols,
-        t_column* agg_scount, t_column* spkey, t_uindex& insert_count,
+        t_uindex& insert_count, t_bool& pivots_neq,
         const t_svec& pivot_like) const;
 
-    std::pair<t_table_sptr, t_table_sptr> build_strand_table(const t_table& flattened,
-        const t_table& delta, const t_table& prev, const t_table& current,
-        const t_table& transitions, const t_aggspecvec& aggspecs, const t_config& config) const;
+    void build_strand_table_phase_2(t_tscalar pkey, t_uindex idx,
+        t_uindex npivots, t_uindex strand_count_idx, t_uindex aggcolsize,
+        const t_colcptrvec& piv_pcols, const t_colcptrvec& agg_pcols,
+        t_colptrvec& piv_scols, t_colptrvec& agg_acols, t_column* agg_scount,
+        t_column* spkey, t_uindex& insert_count,
+        const t_svec& pivot_like) const;
 
     std::pair<t_table_sptr, t_table_sptr> build_strand_table(
-        const t_table& flattened, const t_aggspecvec& aggspecs, const t_config& config) const;
+        const t_table& flattened, const t_table& delta, const t_table& prev,
+        const t_table& current, const t_table& transitions,
+        const t_aggspecvec& aggspecs, const t_config& config) const;
+
+    std::pair<t_table_sptr, t_table_sptr> build_strand_table(
+        const t_table& flattened, const t_aggspecvec& aggspecs,
+        const t_config& config) const;
 
     void update_shape_from_static(const t_dtree_ctx& ctx);
-    void update_aggs_from_static(const t_dtree_ctx& ctx, const t_gstate& gstate);
+    void update_aggs_from_static(
+        const t_dtree_ctx& ctx, const t_gstate& gstate);
 
     t_uindex size() const;
 
@@ -188,12 +220,14 @@ public:
 
     t_uidxset non_zero_ids(const t_uidxvec& zero_strands) const;
 
-    t_uidxset non_zero_ids(const t_uidxset& ptiset, const t_uidxvec& zero_strands) const;
+    t_uidxset non_zero_ids(
+        const t_uidxset& ptiset, const t_uidxvec& zero_strands) const;
 
     t_uindex get_parent_idx(t_uindex idx) const;
     t_uidxvec get_ancestry(t_uindex idx) const;
 
-    t_index get_sibling_idx(t_tvidx p_ptidx, t_index p_nchild, t_uindex c_ptidx) const;
+    t_index get_sibling_idx(
+        t_tvidx p_ptidx, t_index p_nchild, t_uindex c_ptidx) const;
     t_uindex get_aggidx(t_uindex idx) const;
 
     t_table_csptr get_aggtable() const;
@@ -216,7 +250,8 @@ public:
 
     t_by_idx_pkey_ipair get_pkeys_for_leaf(t_uindex idx) const;
     t_depth get_depth(t_uindex ptidx) const;
-    void get_drd_indices(t_uindex ridx, t_depth rel_depth, t_uidxvec& leaves) const;
+    void get_drd_indices(
+        t_uindex ridx, t_depth rel_depth, t_uidxvec& leaves) const;
     t_uidxvec get_leaves(t_uindex idx) const;
     t_tscalvec get_pkeys(t_uindex idx) const;
     t_uidxvec get_child_idx(t_uindex idx) const;
@@ -231,8 +266,8 @@ public:
 
     // aggregates should be presized to be same size
     // as agg_indices
-    void get_aggregates_for_sorting(
-        t_uindex nidx, const t_idxvec& agg_indices, t_tscalvec& aggregates, t_ctx2*) const;
+    void get_aggregates_for_sorting(t_uindex nidx, const t_idxvec& agg_indices,
+        t_tscalvec& aggregates, t_ctx2*) const;
 
     t_tscalar get_aggregate(t_ptidx idx, t_index aggnum) const;
 
@@ -282,16 +317,19 @@ protected:
     t_uindex genidx();
     t_uindex gen_aggidx();
     t_uidxvec get_children(t_uindex idx) const;
-    void update_agg_table(t_uindex nidx, t_agg_update_info& info, t_uindex src_ridx,
-        t_uindex dst_ridx, t_index nstrands, const t_gstate& gstate);
+    void update_agg_table(t_uindex nidx, t_agg_update_info& info,
+        t_uindex src_ridx, t_uindex dst_ridx, t_index nstrands,
+        const t_gstate& gstate);
 
     t_bool is_leaf(t_uindex nidx) const;
 
     t_build_strand_table_common_rval build_strand_table_common(
-        const t_table& flattened, const t_aggspecvec& aggspecs, const t_config& config) const;
+        const t_table& flattened, const t_aggspecvec& aggspecs,
+        const t_config& config) const;
 
-    void populate_pkey_idx(const t_dtree_ctx& ctx, const t_dtree& dtree, t_uindex dptidx,
-        t_uindex sptidx, t_uindex ndepth, t_idxpkey& new_idx_pkey);
+    void populate_pkey_idx(const t_dtree_ctx& ctx, const t_dtree& dtree,
+        t_uindex dptidx, t_uindex sptidx, t_uindex ndepth,
+        t_idxpkey& new_idx_pkey);
 
 private:
     t_pivotvec m_pivots;
@@ -321,26 +359,34 @@ private:
 
 template <typename ITER_T>
 t_minmax
-t_stree::get_agg_min_max(ITER_T biter, ITER_T eiter, t_uindex aggidx) const {
+t_stree::get_agg_min_max(ITER_T biter, ITER_T eiter, t_uindex aggidx) const
+{
     auto aggcols = m_aggregates->get_const_columns();
     auto col = aggcols[aggidx];
     t_minmax minmax;
 
-    for (auto iter = biter; iter != eiter; ++iter) {
+    for (auto iter = biter; iter != eiter; ++iter)
+    {
         if (iter->m_idx == 0)
             continue;
         t_uindex aggidx = iter->m_aggidx;
         t_tscalar v = col->get_scalar(aggidx);
 
-        if (minmax.m_min.is_none()) {
+        if (minmax.m_min.is_none())
+        {
             minmax.m_min = v;
-        } else {
+        }
+        else
+        {
             minmax.m_min = std::min(v, minmax.m_min);
         }
 
-        if (minmax.m_max.is_none()) {
+        if (minmax.m_max.is_none())
+        {
             minmax.m_max = v;
-        } else {
+        }
+        else
+        {
             minmax.m_max = std::max(v, minmax.m_max);
         }
     }

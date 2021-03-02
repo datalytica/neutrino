@@ -12,10 +12,12 @@
 #include <perspective/base.h>
 #include <perspective/exports.h>
 
-namespace perspective {
+namespace perspective
+{
 class t_pool;
 
-class PERSPECTIVE_EXPORT t_update_task {
+class PERSPECTIVE_EXPORT t_update_task
+{
 public:
     t_update_task(t_pool& pool);
     virtual void run();

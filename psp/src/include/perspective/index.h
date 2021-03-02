@@ -9,10 +9,17 @@
 
 #pragma once
 
-namespace perspective {
+namespace perspective
+{
 
-enum t_index_mode { INDEX_MODE_IMPLICIT, INDEX_MODE_BITMAP };
+enum t_index_mode
+{
+    INDEX_MODE_IMPLICIT,
+    INDEX_MODE_BITMAP
+};
 
-class t_index {};
+class t_index
+{
+};
 
 } // end namespace perspective

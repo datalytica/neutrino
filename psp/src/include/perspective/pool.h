@@ -19,9 +19,11 @@
 #include <emscripten/val.h>
 #endif
 
-namespace perspective {
+namespace perspective
+{
 
-struct PERSPECTIVE_EXPORT t_updctx {
+struct PERSPECTIVE_EXPORT t_updctx
+{
     t_updctx();
     t_updctx(t_uindex gnode_id, const t_str& ctx);
 
@@ -33,7 +35,8 @@ typedef std::vector<t_updctx> t_updctx_vec;
 
 class t_update_task;
 
-class PERSPECTIVE_EXPORT t_pool {
+class PERSPECTIVE_EXPORT t_pool
+{
     friend class t_update_task;
     typedef std::pair<t_uindex, t_str> t_ctx_id;
 
@@ -42,12 +45,14 @@ public:
     t_pool(emscripten::val update_delegate);
     void set_update_delegate(emscripten::val ud);
     t_uindex register_gnode(t_gnode* node);
-    void register_context(t_uindex gnode_id, const t_str& name, t_ctx_type type, t_int32 ptr);
+    void register_context(
+        t_uindex gnode_id, const t_str& name, t_ctx_type type, t_int32 ptr);
     void py_notify_userspace();
 #else
     t_pool();
     t_uindex register_gnode(t_gnode* node);
-    void register_context(t_uindex gnode_id, const t_str& name, t_ctx_type type, t_int64 ptr);
+    void register_context(
+        t_uindex gnode_id, const t_str& name, t_ctx_type type, t_int64 ptr);
     void set_update_delegate();
     void py_notify_userspace();
 #endif

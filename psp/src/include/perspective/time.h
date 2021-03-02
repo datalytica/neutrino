@@ -21,7 +21,8 @@
 #endif
 SUPPRESS_WARNINGS_VC(4244)
 
-namespace perspective {
+namespace perspective
+{
 
 const int SECS_PER_HOUR = 60 * 60;
 const int SECS_PER_DAY = SECS_PER_HOUR * 24;
@@ -35,7 +36,8 @@ class t_time;
 // A simple difference in ms between two t_times can be
 // added/subtracted from another, that DOES NOT do things
 // like account for short months, etc.
-struct t_tdelta {
+struct t_tdelta
+{
     t_int64 v;
     t_tdelta();
     t_tdelta(t_int64 v);
@@ -51,8 +53,8 @@ t_int32 isleap(long int year);
 t_int32 days_before_year(t_int32 year);
 t_int32 days_before_month(t_int32 year, t_int32 month);
 t_int32 ymd_to_ord(t_int32 year, t_int32 month, t_int32 day);
-t_int64 to_gmtime(
-    t_int32 year, t_int32 month, t_int32 day, t_int32 hour, t_int32 min, t_int32 sec);
+t_int64 to_gmtime(t_int32 year, t_int32 month, t_int32 day, t_int32 hour,
+    t_int32 min, t_int32 sec);
 
 // Interal details: m_storage stores "microseconds since the
 // epoch-defined-in-the-class".
@@ -66,13 +68,15 @@ t_int64 to_gmtime(
 // In principle, a seconds() in the range [0..60]. (Accurate
 // leap seconds are non implemented currently.)
 // A microseconds() in the range [0..999].
-class PERSPECTIVE_EXPORT t_time {
+class PERSPECTIVE_EXPORT t_time
+{
 public:
     typedef t_int64 t_rawtype;
 
     t_time();
     explicit t_time(t_int64 raw_val);
-    t_time(t_int32 year, t_int32 month, t_int32 day, t_int32 hour, t_int32 min, t_int32 sec);
+    t_time(t_int32 year, t_int32 month, t_int32 day, t_int32 hour, t_int32 min,
+        t_int32 sec);
 
     t_int64 raw_value() const;
 
@@ -114,14 +118,16 @@ private:
 t_tdelta operator-(const t_time& a, const t_time& b);
 
 inline size_t
-hash_value(const t_time& t) {
+hash_value(const t_time& t)
+{
     boost::hash<t_int64> hasher;
     return hasher(t.m_storage);
 }
 
 } // end namespace perspective
 
-namespace std {
+namespace std
+{
 std::ostream& operator<<(std::ostream& s, const perspective::t_tdelta& td);
 
 std::ostream& operator<<(std::ostream& os, const perspective::t_time& t);

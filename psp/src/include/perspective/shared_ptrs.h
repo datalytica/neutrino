@@ -11,7 +11,8 @@
 #include <perspective/first.h>
 #include <perspective/base.h>
 
-namespace perspective {
+namespace perspective
+{
 class t_ftrav;
 typedef std::shared_ptr<t_ftrav> t_ftrav_sptr;
 typedef std::shared_ptr<const t_ftrav> t_ftrav_csptr;

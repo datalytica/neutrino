@@ -13,7 +13,8 @@
 #include <perspective/compat.h>
 #include <perspective/exports.h>
 
-namespace perspective {
+namespace perspective
+{
 
 PERSPECTIVE_EXPORT void psp_log_time(const t_str& s);
 

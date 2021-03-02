@@ -18,9 +18,11 @@
 #include <string>
 #include <algorithm>
 
-namespace perspective {
+namespace perspective
+{
 static const t_int32 CUMULATIVE_DAYS[2][13] = {
-    {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365} /* Normal years.  */,
+    {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334,
+        365} /* Normal years.  */,
     {0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366} /* Leap
                                                                     years.
                                                                     */
@@ -31,7 +33,8 @@ static const t_int32 CUMULATIVE_DAYS[2][13] = {
 // A year() since year 0AD.
 // A month() in the range [1..12].
 // A day() of the month in the range [1..31].
-class PERSPECTIVE_EXPORT t_date {
+class PERSPECTIVE_EXPORT t_date
+{
 public:
     static const t_int32 YEAR_MASK = 0xFFFF0000;
     static const t_int32 MONTH_MASK = 0x0000FF00;
@@ -87,12 +90,14 @@ private:
 t_date from_consecutive_day_idx(t_int32 idx);
 
 inline size_t
-hash_value(const t_date& d) {
+hash_value(const t_date& d)
+{
     boost::hash<t_uint32> hasher;
     return hasher(d.m_storage);
 }
 } // end namespace perspective
 
-namespace std {
+namespace std
+{
 std::ostream& operator<<(std::ostream& os, const perspective::t_date& t);
 }
