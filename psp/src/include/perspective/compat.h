@@ -20,7 +20,7 @@ namespace perspective
 {
 
 t_uindex file_size(t_handle h);
-void close_file(t_handle h);
+PERSPECTIVE_EXPORT void close_file(t_handle h);
 void flush_mapping(void* base, t_uindex len);
 void rmfile(const t_str& fname);
 
@@ -48,9 +48,9 @@ void launch_proc(const t_str& cmdline);
 t_str cwd();
 
 PERSPECTIVE_EXPORT t_int64 get_page_size();
+
 PERSPECTIVE_EXPORT t_int64 psp_curtime();
 PERSPECTIVE_EXPORT t_int64 psp_curmem();
-
 PERSPECTIVE_EXPORT void* psp_dbg_malloc(size_t size);
 PERSPECTIVE_EXPORT void psp_dbg_free(void* mem);
 

@@ -167,9 +167,9 @@ t_ctx0::get_column_name(t_index idx)
     t_str empty("");
 
     if (idx >= get_column_count())
-        return m_symtable.get_interned_tscalar(empty.c_str());
+        return m_symtable->get_interned_tscalar(empty.c_str());
 
-    return m_symtable.get_interned_tscalar(m_config.col_at(idx).c_str());
+    return m_symtable->get_interned_tscalar(m_config.col_at(idx).c_str());
 }
 
 void
@@ -177,11 +177,12 @@ t_ctx0::init()
 {
     m_traversal = std::make_shared<t_ftrav>(m_config.handle_nan_sort());
     m_deltas = std::make_shared<t_zcdeltas>();
+    m_symtable = std::make_shared<t_symtable>();
     m_init = true;
 }
 
 t_tscalvec
-t_ctx0::get_pkeys(const t_uidxpvec& cells) const
+t_ctx0::get_pkeys(const std::vector<t_uidxpair>& cells) const
 {
     if (!m_traversal->validate_cells(cells))
     {
@@ -192,7 +193,7 @@ t_ctx0::get_pkeys(const t_uidxpvec& cells) const
 }
 
 t_tscalvec
-t_ctx0::get_all_pkeys(const t_uidxpvec& cells) const
+t_ctx0::get_all_pkeys(const std::vector<t_uidxpair>& cells) const
 {
     if (!m_traversal->validate_cells(cells))
     {
@@ -203,7 +204,7 @@ t_ctx0::get_all_pkeys(const t_uidxpvec& cells) const
 }
 
 t_tscalvec
-t_ctx0::get_cell_data(const t_uidxpvec& cells) const
+t_ctx0::get_cell_data(const std::vector<t_uidxpair>& cells) const
 {
     if (!m_traversal->validate_cells(cells))
     {
@@ -317,7 +318,7 @@ t_ctx0::get_step_delta(t_tvidx bidx, t_tvidx eidx)
     return rval;
 }
 
-t_svec
+std::vector<t_str>
 t_ctx0::get_column_names() const
 {
     return m_config.get_column_names();
@@ -362,13 +363,13 @@ t_ctx0::notify(const t_table& flattened, const t_table& delta,
     t_bool delete_encountered = false;
     if (m_config.has_filters())
     {
-        t_mask msk_prev = filter_table_for_config(prev, m_config);
-        t_mask msk_curr = filter_table_for_config(curr, m_config);
+        auto msk_prev = filter_table_for_config(prev, m_config);
+        auto msk_curr = filter_table_for_config(curr, m_config);
 
         for (t_uindex idx = 0; idx < nrecs; ++idx)
         {
             t_tscalar pkey
-                = m_symtable.get_interned_tscalar(pkey_col->get_scalar(idx));
+                = m_symtable->get_interned_tscalar(pkey_col->get_scalar(idx));
 
             t_uint8 op_ = *(op_col->get_nth<t_uint8>(idx));
             t_op op = static_cast<t_op>(op_);
@@ -378,8 +379,8 @@ t_ctx0::notify(const t_table& flattened, const t_table& delta,
             {
                 case OP_INSERT:
                 {
-                    t_bool filter_curr = msk_curr.get(idx);
-                    t_bool filter_prev = msk_prev.get(idx) && existed;
+                    t_bool filter_curr = msk_curr->get(idx);
+                    t_bool filter_prev = msk_prev->get(idx) && existed;
 
                     if (filter_prev)
                     {
@@ -425,7 +426,7 @@ t_ctx0::notify(const t_table& flattened, const t_table& delta,
     for (t_uindex idx = 0; idx < nrecs; ++idx)
     {
         t_tscalar pkey
-            = m_symtable.get_interned_tscalar(pkey_col->get_scalar(idx));
+            = m_symtable->get_interned_tscalar(pkey_col->get_scalar(idx));
         t_uint8 op_ = *(op_col->get_nth<t_uint8>(idx));
         t_op op = static_cast<t_op>(op_);
         t_bool existed = *(existed_col->get_nth<t_bool>(idx));
@@ -568,12 +569,12 @@ t_ctx0::notify(const t_table& flattened)
 
     if (m_config.has_filters())
     {
-        t_mask msk = filter_table_for_config(flattened, m_config);
+        auto msk = filter_table_for_config(flattened, m_config);
 
         for (t_uindex idx = 0; idx < nrecs; ++idx)
         {
             t_tscalar pkey
-                = m_symtable.get_interned_tscalar(pkey_col->get_scalar(idx));
+                = m_symtable->get_interned_tscalar(pkey_col->get_scalar(idx));
             t_uint8 op_ = *(op_col->get_nth<t_uint8>(idx));
             t_op op = static_cast<t_op>(op_);
 
@@ -581,7 +582,7 @@ t_ctx0::notify(const t_table& flattened)
             {
                 case OP_INSERT:
                 {
-                    if (msk.get(idx))
+                    if (msk->get(idx))
                     {
                         m_traversal->add_row(m_state, m_config, pkey);
                     }
@@ -600,7 +601,7 @@ t_ctx0::notify(const t_table& flattened)
     for (t_uindex idx = 0; idx < nrecs; ++idx)
     {
         t_tscalar pkey
-            = m_symtable.get_interned_tscalar(pkey_col->get_scalar(idx));
+            = m_symtable->get_interned_tscalar(pkey_col->get_scalar(idx));
         t_uint8 op_ = *(op_col->get_nth<t_uint8>(idx));
         t_op op = static_cast<t_op>(op_);
 
@@ -687,13 +688,13 @@ t_ctx0::unity_get_column_display_name(t_uindex idx) const
     return m_config.col_at(idx);
 }
 
-t_svec
+std::vector<t_str>
 t_ctx0::unity_get_column_names() const
 {
     return m_config.get_column_names();
 }
 
-t_svec
+std::vector<t_str>
 t_ctx0::unity_get_column_display_names() const
 {
     return m_config.get_column_names();

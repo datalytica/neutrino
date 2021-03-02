@@ -18,7 +18,11 @@ t_config_recipe::t_config_recipe()
 {
 }
 
-t_config::t_config() {}
+t_config::t_config()
+{
+    PSP_UNUSED(m_row_expand_depth);
+    PSP_UNUSED(m_col_expand_depth);
+}
 
 t_config::t_config(const t_config_recipe& r)
     : m_detail_columns(r.m_detail_columns)
@@ -55,8 +59,8 @@ t_config::t_config(const t_config_recipe& r)
         }
     }
 
-    t_svec sort_pivot;
-    t_svec sort_pivot_by;
+    std::vector<t_str> sort_pivot;
+    std::vector<t_str> sort_pivot_by;
 
     for (const auto& v : r.m_sortby)
     {
@@ -68,12 +72,13 @@ t_config::t_config(const t_config_recipe& r)
 }
 
 t_config::t_config(const t_pivotvec& row_pivots, const t_pivotvec& col_pivots,
-    const t_aggspecvec& aggregates, const t_svec& detail_columns,
-    const t_totals totals, const t_svec& sort_pivot,
-    const t_svec& sort_pivot_by, t_filter_op combiner, const t_ftermvec& fterms,
-    t_bool handle_nan_sort, const t_str& parent_pkey_column,
-    const t_str& child_pkey_column, const t_str& grouping_label_column,
-    t_fmode fmode, const t_svec& filter_exprs, const t_str& grand_agg_str)
+    const t_aggspecvec& aggregates, const std::vector<t_str>& detail_columns,
+    const t_totals totals, const std::vector<t_str>& sort_pivot,
+    const std::vector<t_str>& sort_pivot_by, t_filter_op combiner,
+    const t_ftermvec& fterms, t_bool handle_nan_sort,
+    const t_str& parent_pkey_column, const t_str& child_pkey_column,
+    const t_str& grouping_label_column, t_fmode fmode,
+    const std::vector<t_str>& filter_exprs, const t_str& grand_agg_str)
     : m_row_pivots(row_pivots)
     , m_col_pivots(col_pivots)
     , m_aggregates(aggregates)
@@ -97,14 +102,14 @@ t_config::t_config(const t_pivotvec& row_pivots, const t_aggspecvec& aggregates)
     , m_aggregates(aggregates)
     , m_fmode(FMODE_SIMPLE_CLAUSES)
 {
-    setup(m_detail_columns, t_svec{}, t_svec{});
+    setup(m_detail_columns, std::vector<t_str>{}, std::vector<t_str>{});
 }
 
 // grouped_pkeys
-t_config::t_config(const t_svec& row_pivots, const t_svec& detail_columns,
-    t_filter_op combiner, const t_ftermvec& fterms,
-    const t_str& parent_pkey_column, const t_str& child_pkey_column,
-    const t_str& grouping_label_column)
+t_config::t_config(const std::vector<t_str>& row_pivots,
+    const std::vector<t_str>& detail_columns, t_filter_op combiner,
+    const t_ftermvec& fterms, const t_str& parent_pkey_column,
+    const t_str& child_pkey_column, const t_str& grouping_label_column)
     : m_detail_columns(detail_columns)
     , m_combiner(combiner)
     , m_fterms(fterms)
@@ -120,13 +125,21 @@ t_config::t_config(const t_svec& row_pivots, const t_svec& detail_columns,
         m_row_pivots.push_back(t_pivot(p));
     }
 
-    setup(m_detail_columns, t_svec{}, t_svec{});
+    setup(m_detail_columns, std::vector<t_str>{}, std::vector<t_str>{});
 }
 
 // ctx2
-t_config::t_config(const t_svec& row_pivots, const t_svec& col_pivots,
-    const t_aggspecvec& aggregates, const t_totals totals, t_filter_op combiner,
-    const t_ftermvec& fterms)
+t_config::t_config(const std::vector<t_str>& row_pivots,
+    const std::vector<t_str>& col_pivots, const t_aggspecvec& aggregates)
+    : t_config(
+          row_pivots, col_pivots, aggregates, TOTALS_HIDDEN, FILTER_OP_AND, {})
+
+{
+}
+
+t_config::t_config(const std::vector<t_str>& row_pivots,
+    const std::vector<t_str>& col_pivots, const t_aggspecvec& aggregates,
+    const t_totals totals, t_filter_op combiner, const t_ftermvec& fterms)
     : m_aggregates(aggregates)
     , m_totals(totals)
     , m_combiner(combiner)
@@ -144,11 +157,12 @@ t_config::t_config(const t_svec& row_pivots, const t_svec& col_pivots,
         m_col_pivots.push_back(t_pivot(p));
     }
 
-    setup(m_detail_columns, t_svec{}, t_svec{});
+    setup(m_detail_columns, std::vector<t_str>{}, std::vector<t_str>{});
 }
 
 // t_ctx1
-t_config::t_config(const t_svec& row_pivots, const t_aggspecvec& aggregates)
+t_config::t_config(
+    const std::vector<t_str>& row_pivots, const t_aggspecvec& aggregates)
     : m_aggregates(aggregates)
     , m_totals(TOTALS_BEFORE)
     , m_combiner(FILTER_OP_AND)
@@ -160,11 +174,28 @@ t_config::t_config(const t_svec& row_pivots, const t_aggspecvec& aggregates)
         m_row_pivots.push_back(t_pivot(p));
     }
 
-    setup(m_detail_columns, t_svec{}, t_svec{});
+    setup(m_detail_columns, std::vector<t_str>{}, std::vector<t_str>{});
 }
 
-t_config::t_config(const t_svec& row_pivots, const t_aggspecvec& aggregates,
-    t_filter_op combiner, const t_ftermvec& fterms)
+// t_ctx1
+t_config::t_config(const std::vector<t_str>& row_pivots, const t_aggspec& agg)
+    : m_aggregates(t_aggspecvec{agg})
+    , m_totals(TOTALS_BEFORE)
+    , m_combiner(FILTER_OP_AND)
+    , m_handle_nan_sort(true)
+    , m_fmode(FMODE_SIMPLE_CLAUSES)
+{
+    for (const auto& p : row_pivots)
+    {
+        m_row_pivots.push_back(t_pivot(p));
+    }
+
+    setup(m_detail_columns, std::vector<t_str>{}, std::vector<t_str>{});
+}
+
+t_config::t_config(const std::vector<t_str>& row_pivots,
+    const t_aggspecvec& aggregates, t_filter_op combiner,
+    const t_ftermvec& fterms)
     : m_aggregates(aggregates)
     , m_totals(TOTALS_BEFORE)
     , m_combiner(combiner)
@@ -177,12 +208,17 @@ t_config::t_config(const t_svec& row_pivots, const t_aggspecvec& aggregates,
         m_row_pivots.push_back(t_pivot(p));
     }
 
-    setup(m_detail_columns, t_svec{}, t_svec{});
+    setup(m_detail_columns, std::vector<t_str>{}, std::vector<t_str>{});
 }
 
 // t_ctx0
-t_config::t_config(const t_svec& detail_columns, t_filter_op combiner,
-    const t_ftermvec& fterms)
+t_config::t_config(const std::vector<t_str>& detail_columns)
+    : t_config(detail_columns, FILTER_OP_AND, {})
+{
+}
+
+t_config::t_config(const std::vector<t_str>& detail_columns,
+    t_filter_op combiner, const t_ftermvec& fterms)
     : m_detail_columns(detail_columns)
     , m_combiner(combiner)
     , m_fterms(fterms)
@@ -191,11 +227,12 @@ t_config::t_config(const t_svec& detail_columns, t_filter_op combiner,
 }
 
 void
-t_config::setup(const t_svec& detail_columns, const t_svec& sort_pivot,
-    const t_svec& sort_pivot_by)
+t_config::setup(const std::vector<t_str>& detail_columns,
+    const std::vector<t_str>& sort_pivot,
+    const std::vector<t_str>& sort_pivot_by)
 {
     t_index count = 0;
-    for (t_svec::const_iterator iter = detail_columns.begin();
+    for (std::vector<t_str>::const_iterator iter = detail_columns.begin();
          iter != detail_columns.end(); ++iter)
     {
         m_detail_colmap[*iter] = count;
@@ -263,7 +300,8 @@ t_config::populate_sortby(const t_pivotvec& pivots)
 t_index
 t_config::get_colidx(const t_str& colname) const
 {
-    t_sidxmap::const_iterator iter = m_detail_colmap.find(colname);
+    std::map<t_str, t_index>::const_iterator iter
+        = m_detail_colmap.find(colname);
     if (iter == m_detail_colmap.end())
     {
         return INVALID_INDEX;
@@ -340,7 +378,7 @@ t_str
 t_config::get_sort_by(const t_str& pivot) const
 {
     t_str rval;
-    t_ssmap::const_iterator iter = m_sortby.find(pivot);
+    std::map<t_str, t_str>::const_iterator iter = m_sortby.find(pivot);
 
     if (iter == m_sortby.end())
     {
@@ -361,7 +399,7 @@ t_config::validate_colidx(t_index idx) const
     return true;
 }
 
-t_svec
+std::vector<t_str>
 t_config::get_column_names() const
 {
     return m_detail_columns;
@@ -391,12 +429,12 @@ t_config::get_column_pivots() const
     return m_col_pivots;
 }
 
-t_sspvec
+std::vector<t_sspair>
 t_config::get_sortby_pairs() const
 {
-    t_sspvec rval(m_sortby.size());
+    std::vector<t_sspair> rval(m_sortby.size());
     t_uindex idx = 0;
-    for (t_ssmap::const_iterator iter = m_sortby.begin();
+    for (std::map<t_str, t_str>::const_iterator iter = m_sortby.begin();
          iter != m_sortby.end(); ++iter)
     {
         rval[idx].first = iter->first;

@@ -11,10 +11,8 @@
 #include <perspective/first.h>
 #include <perspective/base.h>
 #include <perspective/port.h>
-#include <perspective/schema.h>
 #include <perspective/exports.h>
 #include <perspective/context_handle.h>
-#include <perspective/pivot.h>
 #include <perspective/env_vars.h>
 #include <perspective/custom_column.h>
 #include <perspective/shared_ptrs.h>
@@ -28,18 +26,17 @@
 namespace perspective
 {
 
-PERSPECTIVE_EXPORT t_tscalar calc_delta(
-    t_value_transition trans, t_tscalar oval, t_tscalar nval);
-
-PERSPECTIVE_EXPORT t_tscalar calc_newer(
-    t_value_transition trans, t_tscalar oval, t_tscalar nval);
-
-PERSPECTIVE_EXPORT t_tscalar calc_negate(t_tscalar val);
+struct PERSPECTIVE_EXPORT t_gnode_options
+{
+    t_gnode_type m_gnode_type;
+    t_schema m_port_schema;
+};
 
 struct PERSPECTIVE_EXPORT t_gnode_recipe
 {
     t_gnode_recipe() {}
     t_gnode_processing_mode m_mode;
+    t_gnode_type m_gnode_type;
     t_schema_recipe m_tblschema;
     t_schema_recipevec m_ischemas;
     t_schema_recipevec m_oschemas;
@@ -52,39 +49,45 @@ struct PERSPECTIVE_EXPORT t_gnode_recipe
 #define PSP_GNODE_VERIFY_TABLE(X)
 #endif
 
+class t_gnode;
+typedef std::shared_ptr<t_gnode> t_gnode_sptr;
+
+class t_ctx0;
+class t_ctx1;
+class t_ctx2;
+class t_ctx_grouped_pkey;
+
+typedef std::shared_ptr<t_ctx0> t_ctx0_sptr;
+typedef std::shared_ptr<t_ctx1> t_ctx1_sptr;
+typedef std::shared_ptr<t_ctx2> t_ctx2_sptr;
+typedef std::shared_ptr<t_ctx_grouped_pkey> t_ctx_grouped_pkey_sptr;
+
 class PERSPECTIVE_EXPORT t_gnode
 {
 public:
+    static t_gnode_sptr build(const t_gnode_options& options);
     t_gnode(const t_gnode_recipe& recipe);
-    t_gnode(const t_schema& tblschema, const t_schema& port_schema);
-    t_gnode(t_gnode_processing_mode mode, const t_schema& tblschema,
-        const t_schemavec& ischemas, const t_schemavec& oschemas,
-        const t_ccol_vec& custom_columns);
+    t_gnode(const t_gnode_options& options);
     ~t_gnode();
     void init();
 
     // send data to input port with at index idx
     // schema should match port schema
+    void _send_and_process(const t_table& fragments);
     void _send(t_uindex idx, const t_table& fragments);
     void _process();
-    void _process_self();
     void _register_context(const t_str& name, t_ctx_type type, t_int64 ptr);
     void _unregister_context(const t_str& name);
 
-    void begin_step();
-    void end_step();
-
-    void update_history(const t_table* tbl);
-
-    t_table* _get_otable(t_uindex portidx);
-    t_table* _get_itable(t_uindex portidx);
     t_table* get_table();
     const t_table* get_table() const;
 
+    t_value_transition calc_transition(t_bool prev_existed,
+        t_bool row_pre_existed, t_bool exists, t_bool prev_valid,
+        t_bool cur_valid, t_bool prev_cur_eq, t_bool prev_pkey_eq);
+
     void pprint() const;
-    t_svec get_registered_contexts() const;
-    t_schema get_tblschema() const;
-    t_pivotvec get_pivots() const;
+    std::vector<t_str> get_registered_contexts() const;
 
     t_streeptr_vec get_trees();
 
@@ -93,15 +96,15 @@ public:
 
     void release_inputs();
     void release_outputs();
-    t_svec get_contexts_last_updated() const;
+    std::vector<t_str> get_contexts_last_updated() const;
 
     void reset();
     t_str repr() const;
     void clear_input_ports();
     void clear_output_ports();
-
+    
     t_table* _get_pkeyed_table() const;
-    t_bool has_pkey(t_tscalar pkey) const;
+    t_table_sptr get_sorted_pkeyed_table() const;
 
     t_tscalvec get_row_data_pkeys(const t_tscalvec& pkeys) const;
     t_tscalvec has_pkeys(const t_tscalvec& pkeys) const;
@@ -112,12 +115,21 @@ public:
     t_gnode_recipe get_recipe() const;
     t_bool has_python_dep() const;
     void set_pool_cleanup(std::function<void()> cleanup);
-    const t_schema& get_port_schema() const;
     t_bool was_updated() const;
     void clear_updated();
 
+    // helper function for tests
+    t_table_sptr tstep(t_table_csptr input_table);
+
+    // Gnode will steal a reference to the context
+    void register_context(const t_str& name, t_ctx0_sptr ctx);
+    void register_context(const t_str& name, t_ctx1_sptr ctx);
+    void register_context(const t_str& name, t_ctx2_sptr ctx);
+    void register_context(const t_str& name, t_ctx_grouped_pkey_sptr ctx);
+
+    t_schema get_tblschema() const;
+
 protected:
-    t_bool have_context(const t_str& name) const;
     void notify_contexts(const t_table& flattened);
 
     template <typename CTX_T>
@@ -141,31 +153,27 @@ protected:
         std::vector<t_bool>& prev_pkey_eq_vec,
         std::vector<t_uindex>& added_vec);
 
-    t_value_transition calc_transition(t_bool prev_existed,
-        t_bool row_pre_existed, t_bool exists, t_bool prev_valid,
-        t_bool cur_valid, t_bool prev_cur_eq, t_bool prev_pkey_eq);
-
     void _update_contexts_from_state(const t_table& tbl);
     void _update_contexts_from_state();
-    void clear_deltas();
 
 private:
     void populate_icols_in_flattened(
         const std::vector<t_rlookup>& lkup, t_table_sptr& flat) const;
 
     t_gnode_processing_mode m_mode;
+    t_gnode_type m_gnode_type;
     t_schema m_tblschema;
     t_schemavec m_ischemas;
     t_schemavec m_oschemas;
     t_bool m_init;
     t_port_sptrvec m_iports;
     t_port_sptrvec m_oports;
-    t_sctxhmap m_contexts;
+    std::map<t_str, t_ctx_handle> m_contexts;
     t_gstate_sptr m_state;
     t_uindex m_id;
     std::chrono::high_resolution_clock::time_point m_epoch;
     t_ccol_vec m_custom_columns;
-    t_sset m_expr_icols;
+    std::set<t_str> m_expr_icols;
     std::function<void()> m_pool_cleanup;
     t_bool m_was_updated;
 };
@@ -215,18 +223,18 @@ t_gnode::notify_context(CTX_T* ctx, const t_table& flattened,
 
 template <typename CTX_T>
 void
-t_gnode::update_context_from_state(CTX_T* ctx, const t_table& flattened)
+t_gnode::update_context_from_state(CTX_T* ctx, const t_table& tbl)
 {
     PSP_TRACE_SENTINEL();
     PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
     PSP_VERBOSE_ASSERT(m_mode == NODE_PROCESSING_SIMPLE_DATAFLOW,
         "Only simple dataflows supported currently");
 
-    if (flattened.size() == 0)
+    if (tbl.size() == 0)
         return;
 
     ctx->step_begin();
-    ctx->notify(flattened);
+    ctx->notify(tbl);
     ctx->step_end();
 }
 
@@ -320,7 +328,5 @@ t_gnode::_process_helper(const t_column* fcolumn, const t_column* scolumn,
         }
     }
 }
-
-typedef std::shared_ptr<t_gnode> t_gnode_sptr;
 
 } // end namespace perspective

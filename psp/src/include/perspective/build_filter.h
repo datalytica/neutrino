@@ -8,7 +8,6 @@
  */
 
 #pragma once
-#include <perspective/first.h>
 #include <perspective/filter.h>
 #include <perspective/table.h>
 #include <perspective/mask.h>

@@ -10,6 +10,7 @@
 #include <perspective/first.h>
 #include <perspective/mask.h>
 #include <perspective/raii.h>
+#include <iostream>
 
 namespace perspective
 {

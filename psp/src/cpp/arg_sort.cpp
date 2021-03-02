@@ -19,7 +19,7 @@ namespace perspective
 {
 
 void
-argsort(t_idxvec& output, const t_multisorter& sorter)
+argsort(std::vector<t_index>& output, const t_multisorter& sorter)
 {
     if (output.empty())
         return;
@@ -75,7 +75,8 @@ t_argsort_comparator::operator()(t_index a, t_index b) const
 }
 
 void
-simple_argsort(t_tscalvec& v, t_idxvec& output, const t_sorttype& sort_type)
+simple_argsort(
+    t_tscalvec& v, std::vector<t_index>& output, const t_sorttype& sort_type)
 {
     // Output should be the same size is v
     for (t_index i = 0, loop_end = output.size(); i != loop_end; ++i)

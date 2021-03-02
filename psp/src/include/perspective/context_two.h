@@ -8,7 +8,6 @@
  */
 
 #pragma once
-#include <perspective/first.h>
 #include <perspective/base.h>
 #include <perspective/context_base.h>
 #include <perspective/sort_specification.h>
@@ -25,7 +24,6 @@ class PERSPECTIVE_EXPORT t_ctx2 : public t_ctxbase<t_ctx2>
 public:
 #include <perspective/context_common_decls.h>
     t_ctx2();
-
     t_ctx2(const t_schema& schema, const t_config& config);
 
     ~t_ctx2();
@@ -34,7 +32,7 @@ public:
     t_index close(t_header header, t_tvidx idx);
 
     t_totals get_totals() const;
-    t_tvivec get_ctraversal_indices() const;
+    std::vector<t_tvidx> get_ctraversal_indices() const;
     t_uindex get_num_view_columns() const;
 
     t_tscalvec get_row_path(t_tvidx idx) const;
@@ -47,11 +45,16 @@ public:
     t_aggspecvec get_aggregates() const;
 
     void set_depth(t_header header, t_depth depth);
+    t_depth get_depth(t_header header) const;
 
     using t_ctxbase<t_ctx2>::get_data;
 
+    t_uindex get_leaf_count(t_header header) const;
+    t_tscalvec get_leaf_data(t_uindex start_row, t_uindex end_row,
+        t_uindex start_col, t_uindex end_col) const;
+
 protected:
-    t_cinfovec resolve_cells(const t_uidxpvec& cells) const;
+    t_cinfovec resolve_cells(const std::vector<t_uidxpair>& cells) const;
 
     t_stree_sptr rtree();
     t_stree_csptr rtree() const;

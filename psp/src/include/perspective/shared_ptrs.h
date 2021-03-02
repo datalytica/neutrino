@@ -10,6 +10,7 @@
 #pragma once
 #include <perspective/first.h>
 #include <perspective/base.h>
+#include <memory>
 
 namespace perspective
 {
@@ -40,4 +41,16 @@ typedef std::shared_ptr<const t_table> t_table_csptr;
 class t_column;
 typedef std::vector<t_column*> t_colptrvec;
 typedef std::vector<const t_column*> t_colcptrvec;
+
+class t_mask;
+typedef std::shared_ptr<t_mask> t_masksptr;
+
+class t_symtable;
+typedef std::shared_ptr<t_symtable> t_symtable_sptr;
+
+class t_vocab;
+typedef std::shared_ptr<t_vocab> t_vocab_sptr;
+
+class t_filter;
+
 } // namespace perspective

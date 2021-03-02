@@ -21,6 +21,7 @@
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
 #include <perspective/sym_table.h>
+#include <perspective/vocab.h>
 #include <codecvt>
 
 using namespace perspective;
@@ -28,6 +29,8 @@ using namespace emscripten;
 
 typedef std::codecvt_utf8<wchar_t> utf8convert_type;
 typedef std::codecvt_utf8_utf16<wchar_t> utf16convert_type;
+
+t_date jsdate_to_t_date(val date);
 
 /******************************************************************************
  *
@@ -120,7 +123,7 @@ _get_fterms(t_schema schema, val j_filters)
                         term = mktscalar(filter[2].as<bool>());
                         break;
                     case DTYPE_DATE:
-                        term = mktscalar(t_date(filter[2].as<t_int32>()));
+                        term = mktscalar(jsdate_to_t_date(filter[2]));
                         break;
                     case DTYPE_TIME:
                         term = mktscalar(t_time(static_cast<t_int64>(
@@ -161,6 +164,7 @@ _get_aggspecs(val j_aggs)
         std::vector<val> agg_row = vecFromJSArray<val>(aggs[idx]);
         std::string name = agg_row[0].as<std::string>();
         t_aggtype aggtype = agg_row[1].as<t_aggtype>();
+        auto& kernel = agg_row[3];
 
         t_depvec dependencies;
         std::vector<val> deps = vecFromJSArray<val>(agg_row[2]);
@@ -173,120 +177,33 @@ _get_aggspecs(val j_aggs)
             std::string dep = deps[didx].as<std::string>();
             dependencies.push_back(t_dep(dep, DEPTYPE_COLUMN));
         }
-        if (aggtype == AGGTYPE_FIRST || aggtype == AGGTYPE_LAST)
+
+        switch (aggtype)
         {
-            if (dependencies.size() == 1)
+            case AGGTYPE_FIRST:
+            case AGGTYPE_LAST:
             {
-                dependencies.push_back(t_dep("psp_pkey", DEPTYPE_COLUMN));
+                if (dependencies.size() == 1)
+                {
+                    dependencies.push_back(t_dep("psp_pkey", DEPTYPE_COLUMN));
+                }
+                aggspecs.push_back(t_aggspec(
+                    name, name, aggtype, dependencies, SORTTYPE_ASCENDING));
             }
-            aggspecs.push_back(t_aggspec(
-                name, name, aggtype, dependencies, SORTTYPE_ASCENDING));
-        }
-        else
-        {
-            aggspecs.push_back(t_aggspec(name, aggtype, dependencies));
+            break;
+            case AGGTYPE_UDF_JS_REDUCE_FLOAT64:
+            {
+                aggspecs.push_back(
+                    t_aggspec(name, aggtype, dependencies, kernel));
+            }
+            break;
+            default:
+            {
+                aggspecs.push_back(t_aggspec(name, aggtype, dependencies));
+            }
         }
     }
     return aggspecs;
-}
-
-// Date parsing
-t_date
-jsdate_to_t_date(val date)
-{
-    return t_date(date.call<val>("getFullYear").as<t_int32>(),
-        date.call<val>("getMonth").as<t_int32>(),
-        date.call<val>("getDate").as<t_int32>());
-}
-
-val
-t_date_to_jsdate(t_date date)
-{
-    val jsdate = val::global("Date").new_();
-    jsdate.call<val>("setYear", date.year());
-    jsdate.call<val>("setMonth", date.month());
-    jsdate.call<val>("setDate", date.day());
-    jsdate.call<val>("setHours", 0);
-    jsdate.call<val>("setMinutes", 0);
-    jsdate.call<val>("setSeconds", 0);
-    jsdate.call<val>("setMilliseconds", 0);
-    return jsdate;
-}
-
-/**
- * Converts a scalar value to its JS representation.
- *
- * Params
- * ------
- * t_tscalar scalar
- *
- * Returns
- * -------
- * val
- */
-val
-scalar_to_val(const t_tscalar scalar)
-{
-    if (!scalar.is_valid())
-    {
-        return val::null();
-    }
-    switch (scalar.get_dtype())
-    {
-        case DTYPE_BOOL:
-        {
-            if (scalar)
-            {
-                return val(true);
-            }
-            else
-            {
-                return val(false);
-            }
-        }
-        case DTYPE_TIME:
-        case DTYPE_FLOAT64:
-        case DTYPE_FLOAT32:
-        {
-            return val(scalar.to_double());
-        }
-        case DTYPE_DATE:
-        {
-            return t_date_to_jsdate(scalar.get<t_date>()).call<val>("getTime");
-        }
-        case DTYPE_UINT8:
-        case DTYPE_UINT16:
-        case DTYPE_UINT32:
-        case DTYPE_INT8:
-        case DTYPE_INT16:
-        case DTYPE_INT32:
-        {
-            return val(static_cast<t_int32>(scalar.to_int64()));
-        }
-        case DTYPE_UINT64:
-        case DTYPE_INT64:
-        {
-            // This could potentially lose precision
-            return val(static_cast<t_int32>(scalar.to_int64()));
-        }
-        case DTYPE_NONE:
-        {
-            return val::null();
-        }
-        case DTYPE_STR:
-        default:
-        {
-            std::wstring_convert<utf8convert_type, wchar_t> converter(
-                "", L"<Invalid>");
-            return val(converter.from_bytes(scalar.to_string()));
-        }
-    }
-}
-
-val
-scalar_vec_to_val(const t_tscalvec& scalars, t_uint32 idx)
-{
-    return scalar_to_val(scalars[idx]);
 }
 
 /**
@@ -375,90 +292,6 @@ fill_col_dict(val dictvec, t_col_sptr col)
 }
 } // namespace arrow
 
-namespace js_typed_array
-{
-val ArrayBuffer = val::global("ArrayBuffer");
-val Int8Array = val::global("Int8Array");
-val Int16Array = val::global("Int16Array");
-val Int32Array = val::global("Int32Array");
-val Float32Array = val::global("Float32Array");
-val Float64Array = val::global("Float64Array");
-} // namespace js_typed_array
-
-// Given a column index, serialize data to TypedArray
-template <typename T>
-val
-col_to_js_typed_array(T ctx, t_tvidx idx)
-{
-    t_tscalvec data = ctx->get_data(0, ctx->get_row_count(), idx, idx + 1);
-    auto dtype = ctx->get_column_dtype(idx);
-    int data_size = data.size();
-    val constructor = val::undefined();
-    val sentinel = val::undefined();
-
-    switch (dtype)
-    {
-        case DTYPE_INT8:
-        {
-            data_size *= sizeof(t_int8);
-            sentinel = val(std::numeric_limits<t_int8>::lowest());
-            constructor = js_typed_array::Int8Array;
-        }
-        break;
-        case DTYPE_INT16:
-        {
-            data_size *= sizeof(t_int16);
-            sentinel = val(std::numeric_limits<t_int16>::lowest());
-            constructor = js_typed_array::Int16Array;
-        }
-        break;
-        case DTYPE_INT32:
-        case DTYPE_INT64:
-        {
-            // scalar_to_val converts int64 into int32
-            data_size *= sizeof(t_int32);
-            sentinel = val(std::numeric_limits<t_int32>::lowest());
-            constructor = js_typed_array::Int32Array;
-        }
-        break;
-        case DTYPE_FLOAT32:
-        {
-            data_size *= sizeof(t_float32);
-            sentinel = val(std::numeric_limits<t_float32>::lowest());
-            constructor = js_typed_array::Float32Array;
-        }
-        break;
-        case DTYPE_TIME:
-        case DTYPE_FLOAT64:
-        {
-            sentinel = val(std::numeric_limits<t_float64>::lowest());
-            data_size *= sizeof(t_float64);
-            constructor = js_typed_array::Float64Array;
-        }
-        break;
-        default:
-            return constructor;
-    }
-
-    val buffer = js_typed_array::ArrayBuffer.new_(data_size);
-    val arr = constructor.new_(buffer);
-
-    for (int idx = 0; idx < data.size(); idx++)
-    {
-        t_tscalar scalar = data[idx];
-        if (scalar.get_dtype() == DTYPE_NONE)
-        {
-            arr.call<void>("fill", sentinel, idx, idx + 1);
-        }
-        else
-        {
-            arr.call<void>("fill", scalar_to_val(scalar), idx, idx + 1);
-        }
-    }
-
-    return arr;
-}
-
 template <typename T>
 void
 _fill_col(val dcol, t_col_sptr col, t_bool is_arrow)
@@ -504,8 +337,20 @@ _fill_col<t_int64>(val dcol, t_col_sptr col, t_bool is_arrow)
     }
     else
     {
-        throw std::logic_error(
-            "Unreachable - can't have DTYPE_INT64 column from non-arrow data");
+        for (auto i = 0; i < nrows; ++i)
+        {
+            if (dcol[i].isUndefined())
+                continue;
+
+            if (dcol[i].isNull())
+            {
+                col->unset(i);
+                continue;
+            }
+
+            t_int64 elem = static_cast<t_int64>(dcol[i].as<t_int32>());
+            col->set_nth(i, elem);
+        }
     }
 }
 
@@ -560,6 +405,28 @@ _fill_col<t_time>(val dcol, t_col_sptr col, t_bool is_arrow)
     }
 }
 
+t_date
+jsdate_to_t_date(val date)
+{
+    return t_date(date.call<val>("getFullYear").as<t_int32>(),
+        date.call<val>("getMonth").as<t_int32>(),
+        date.call<val>("getDate").as<t_int32>());
+}
+
+val
+t_date_to_jsdate(t_date date)
+{
+    val jsdate = val::global("Date").new_();
+    jsdate.call<val>("setYear", date.year());
+    jsdate.call<val>("setMonth", date.month());
+    jsdate.call<val>("setDate", date.day());
+    jsdate.call<val>("setHours", 0);
+    jsdate.call<val>("setMinutes", 0);
+    jsdate.call<val>("setSeconds", 0);
+    jsdate.call<val>("setMilliseconds", 0);
+    return jsdate;
+}
+
 template <>
 void
 _fill_col<t_date>(val dcol, t_col_sptr col, t_bool is_arrow)
@@ -568,24 +435,28 @@ _fill_col<t_date>(val dcol, t_col_sptr col, t_bool is_arrow)
 
     if (is_arrow)
     {
-        // val data = dcol["values"];
-        // // arrow packs 64 bit into two 32 bit ints
-        // arrow::vecFromTypedArray(data, col->get_nth<t_time>(0), nrows * 2);
+        val data = dcol["values"];
 
-        // t_int8 unit = dcol["type"]["unit"].as<t_int8>();
-        // if (unit != /* Arrow.enum_.TimeUnit.MILLISECOND */ 1) {
-        //     // Slow path - need to convert each value
-        //     t_int64 factor = 1;
-        //     if (unit == /* Arrow.enum_.TimeUnit.NANOSECOND */ 3) {
-        //         factor = 1e6;
-        //     } else if (unit == /* Arrow.enum_.TimeUnit.MICROSECOND */ 2) {
-        //         factor = 1e3;
-        //     }
-        //     for (auto i = 0; i < nrows; ++i) {
-        //         col->set_nth<t_int32>(i, *(col->get_nth<t_int32>(i)) /
-        //         factor);
-        //     }
-        // }
+        // Arrow uses one of 2 formats for date values
+        t_int8 unit = dcol["type"]["unit"].as<t_int8>();
+        tm time;
+        if (unit == /* Arrow.enum_.DateUnit.DAY */ 0) {  // Stored as 32bit int
+            std::vector<t_int32> vec(nrows);
+            arrow::vecFromTypedArray(data, vec.data(), nrows);
+            for (auto i = 0; i < nrows; ++i) {
+                t_int32 val = vec[i];
+                t_time(val * (3600 * 24 * 1000000LL)).as_tm(time);
+                col->set_nth<t_date>(i, t_date(time.tm_year+1900, time.tm_mon, time.tm_mday));
+            }
+        } else if (unit == /* Arrow.enum_.DateUnit.MILLISECOND */ 1) { // Stored as 64bit int
+            std::vector<t_int64> vec(nrows);
+            arrow::vecFromTypedArray(data, vec.data(), nrows*2);
+            for (auto i = 0; i < nrows; ++i) {
+                t_int64 val = vec[i];
+                t_time(val * (3600 * 24 * 1000LL)).as_tm(time);
+                col->set_nth<t_date>(i, t_date(time.tm_year+1900, time.tm_mon, time.tm_mday));
+            }
+        }
     }
     else
     {
@@ -727,8 +598,8 @@ _fill_col<std::string>(val dcol, t_col_sptr col, t_bool is_arrow)
  *
  */
 void
-_fill_data(t_table_sptr tbl, t_svec ocolnames, val j_data,
-    std::vector<t_dtype> odt, t_uint32 offset, t_bool is_arrow)
+_fill_data(t_table_sptr tbl, std::vector<t_str> ocolnames, val j_data,
+    std::vector<t_dtype> odt, t_bool is_arrow)
 {
     std::vector<val> data_cols = vecFromJSArray<val>(j_data);
     for (auto cidx = 0; cidx < ocolnames.size(); ++cidx)
@@ -831,50 +702,35 @@ _fill_data(t_table_sptr tbl, t_svec ocolnames, val j_data,
  */
 t_table_sptr
 make_table(t_uint32 size, val j_colnames, val j_dtypes, val j_data,
-    t_uint32 offset, t_uint32 limit, t_str index, t_bool is_arrow,
-    t_bool is_delete)
+    t_str index, t_bool is_arrow, t_bool is_delete)
 {
     // Create the input and port schemas
-    t_svec colnames = vecFromJSArray<std::string>(j_colnames);
-    t_dtypevec dtypes = vecFromJSArray<t_dtype>(j_dtypes);
+    std::vector<t_str> colnames = vecFromJSArray<std::string>(j_colnames);
+    std::vector<t_dtype> dtypes = vecFromJSArray<t_dtype>(j_dtypes);
 
     // Create the table
-    // TODO assert size > 0
     auto tbl = std::make_shared<t_table>(t_schema(colnames, dtypes));
     tbl->init();
     tbl->extend(size);
 
-    _fill_data(tbl, colnames, j_data, dtypes, offset, is_arrow);
-
-    // Set up pkey and op columns
-    if (is_delete)
-    {
-        auto op_col = tbl->add_column("psp_op", DTYPE_UINT8, false);
-        op_col->raw_fill<t_uint8>(OP_DELETE);
-    }
-    else
-    {
-        auto op_col = tbl->add_column("psp_op", DTYPE_UINT8, false);
-        op_col->raw_fill<t_uint8>(OP_INSERT);
+    if (size > 0) {
+        _fill_data(tbl, colnames, j_data, dtypes, is_arrow);
     }
 
-    if (index == "")
+    if (index != "")
     {
-        // If user doesn't specify an column to use as the pkey index, just use
-        // row number
-        auto key_col = tbl->add_column("psp_pkey", DTYPE_INT32, true);
-        auto okey_col = tbl->add_column("psp_okey", DTYPE_INT32, true);
-
-        for (auto ridx = 0; ridx < tbl->size(); ++ridx)
-        {
-            key_col->set_nth<t_int32>(ridx, (ridx + offset) % limit);
-            okey_col->set_nth<t_int32>(ridx, (ridx + offset) % limit);
-        }
-    }
-    else
-    {
+        // Set up pkey and op columns
         tbl->clone_column(index, "psp_pkey");
-        tbl->clone_column(index, "psp_okey");
+        if (is_delete)
+        {
+            auto op_col = tbl->add_column("psp_op", DTYPE_UINT8, false);
+            op_col->raw_fill<t_uint8>(OP_DELETE);
+        }
+        else
+        {
+            auto op_col = tbl->add_column("psp_op", DTYPE_UINT8, false);
+            op_col->raw_fill<t_uint8>(OP_INSERT);
+        }
     }
 
     return tbl;
@@ -893,34 +749,31 @@ make_table(t_uint32 size, val j_colnames, val j_dtypes, val j_data,
  * A gnode.
  */
 t_gnode_sptr
-make_gnode(t_table_sptr table)
+make_gnode(val j_colnames, val j_dtypes, t_str index)
 {
-    auto iscm = table->get_schema();
+    // Create the input and port schemas
+    std::vector<t_str> colnames = vecFromJSArray<std::string>(j_colnames);
+    std::vector<t_dtype> dtypes = vecFromJSArray<t_dtype>(j_dtypes);
 
-    t_svec ocolnames(iscm.columns());
-    t_dtypevec odt(iscm.types());
+    t_schema port_schema(colnames, dtypes);
 
-    if (iscm.has_column("psp_pkey"))
-    {
-        t_uindex idx = iscm.get_colidx("psp_pkey");
-        ocolnames.erase(ocolnames.begin() + idx);
-        odt.erase(odt.begin() + idx);
+    t_gnode_options options;
+
+    if (index != "") {
+        options.m_gnode_type = GNODE_TYPE_PKEYED;
+
+        t_dtype pkey_dtype = port_schema.get_dtype(index);
+
+        // Add pkey and op columns
+        t_schema pkey_op = t_schema{{"psp_op", "psp_pkey"}, {DTYPE_UINT8, pkey_dtype}};
+
+        options.m_port_schema = pkey_op + port_schema;
+    } else {
+        options.m_gnode_type = GNODE_TYPE_IMPLICIT_PKEYED;
+        options.m_port_schema = port_schema;
     }
 
-    if (iscm.has_column("psp_op"))
-    {
-        t_uindex idx = iscm.get_colidx("psp_op");
-        ocolnames.erase(ocolnames.begin() + idx);
-        odt.erase(odt.begin() + idx);
-    }
-
-    t_schema oscm(ocolnames, odt);
-
-    // Create a gnode
-    auto gnode = std::make_shared<t_gnode>(oscm, iscm);
-    gnode->init();
-
-    return gnode;
+    return t_gnode::build(options);
 }
 
 /**
@@ -1036,6 +889,82 @@ sort(t_ctx2_sptr ctx2, val j_sortby)
     {
         ctx2->sort_by(svec);
     }
+}
+
+/**
+ *
+ *
+ * Params
+ * ------
+ *
+ *
+ * Returns
+ * -------
+ *
+ */
+val
+scalar_to_val(const t_tscalar scalar)
+{
+    if (!scalar.is_valid())
+    {
+        return val::null();
+    }
+    switch (scalar.get_dtype())
+    {
+        case DTYPE_BOOL:
+        {
+            if (scalar)
+            {
+                return val(true);
+            }
+            else
+            {
+                return val(false);
+            }
+        }
+        case DTYPE_TIME:
+        case DTYPE_FLOAT64:
+        case DTYPE_FLOAT32:
+        {
+            return val(scalar.to_double());
+        }
+        case DTYPE_DATE:
+        {
+            return t_date_to_jsdate(scalar.get<t_date>()).call<val>("getTime");
+        }
+        case DTYPE_UINT8:
+        case DTYPE_UINT16:
+        case DTYPE_UINT32:
+        case DTYPE_INT8:
+        case DTYPE_INT16:
+        case DTYPE_INT32:
+        {
+            return val(static_cast<t_int32>(scalar.to_int64()));
+        }
+        case DTYPE_UINT64:
+        case DTYPE_INT64:
+        {
+            // This could potentially lose precision
+            return val(static_cast<t_int32>(scalar.to_int64()));
+        }
+        case DTYPE_NONE:
+        {
+            return val::null();
+        }
+        case DTYPE_STR:
+        default:
+        {
+            std::wstring_convert<utf8convert_type, wchar_t> converter(
+                "", L"<Invalid>");
+            return val(converter.from_bytes(scalar.to_string()));
+        }
+    }
+}
+
+val
+scalar_vec_to_val(const t_tscalvec& scalars, t_uint32 idx)
+{
+    return scalar_to_val(scalars[idx]);
 }
 
 val
@@ -1298,22 +1227,19 @@ EMSCRIPTEN_BINDINGS(perspective)
     class_<t_table>("t_table")
         .constructor<t_schema, t_uindex>()
         .smart_ptr<std::shared_ptr<t_table>>("shared_ptr<t_table>")
-        .function<t_column*>(
-            "add_column", &t_table::add_column, allow_raw_pointers())
         .function<void>("pprint", &t_table::pprint)
         .function<unsigned long>("size",
             reinterpret_cast<unsigned long (t_table::*)() const>(
                 &t_table::size));
 
     class_<t_schema>("t_schema")
-        .function<const t_svec&>(
+        .function<const std::vector<t_str>&>(
             "columns", &t_schema::columns, allow_raw_pointers())
-        .function<const t_dtypevec>(
+        .function<const std::vector<t_dtype>>(
             "types", &t_schema::types, allow_raw_pointers());
 
     class_<t_gnode>("t_gnode")
-        .constructor<t_gnode_processing_mode, const t_schema&,
-            const t_schemavec&, const t_schemavec&, const t_ccol_vec&>()
+        .constructor<const t_gnode_options&>()
         .smart_ptr<std::shared_ptr<t_gnode>>("shared_ptr<t_gnode>")
         .function<t_uindex>("get_id",
             reinterpret_cast<t_uindex (t_gnode::*)() const>(&t_gnode::get_id))
@@ -1325,16 +1251,14 @@ EMSCRIPTEN_BINDINGS(perspective)
         .constructor<t_schema, t_config>()
         .smart_ptr<std::shared_ptr<t_ctx0>>("shared_ptr<t_ctx0>")
         .function<t_index>("sidedness", &t_ctx0::sidedness)
-        .function<unsigned long>("get_row_count",
-            reinterpret_cast<unsigned long (t_ctx0::*)() const>(
-                &t_ctx0::get_row_count))
-        .function<unsigned long>("get_column_count",
-            reinterpret_cast<unsigned long (t_ctx0::*)() const>(
-                &t_ctx0::get_column_count))
+        .function<t_index>("get_row_count", &t_ctx0::get_row_count)
+        .function<t_index>("get_column_count", &t_ctx0::get_column_count)
         .function<t_tscalvec>("get_data", &t_ctx0::get_data)
         .function<t_stepdelta>("get_step_delta", &t_ctx0::get_step_delta)
         .function<t_cellupdvec>("get_cell_delta", &t_ctx0::get_cell_delta)
-        .function<t_svec>("get_column_names", &t_ctx0::get_column_names)
+        .function<std::vector<t_str>>(
+            "get_column_names", &t_ctx0::get_column_names)
+        .function<t_dtype>("get_column_dtype", &t_ctx0::get_column_dtype)
         // .function<t_minmaxvec>("get_min_max", &t_ctx0::get_min_max)
         // .function<void>("set_minmax_enabled", &t_ctx0::set_minmax_enabled)
         .function<t_tscalvec>("unity_get_row_data", &t_ctx0::unity_get_row_data)
@@ -1350,9 +1274,9 @@ EMSCRIPTEN_BINDINGS(perspective)
             "unity_get_column_name", &t_ctx0::unity_get_column_name)
         .function<t_str>("unity_get_column_display_name",
             &t_ctx0::unity_get_column_display_name)
-        .function<t_svec>(
+        .function<std::vector<t_str>>(
             "unity_get_column_names", &t_ctx0::unity_get_column_names)
-        .function<t_svec>("unity_get_column_display_names",
+        .function<std::vector<t_str>>("unity_get_column_display_names",
             &t_ctx0::unity_get_column_display_names)
         .function<t_uindex>(
             "unity_get_column_count", &t_ctx0::unity_get_column_count)
@@ -1368,20 +1292,20 @@ EMSCRIPTEN_BINDINGS(perspective)
         .constructor<t_schema, t_config>()
         .smart_ptr<std::shared_ptr<t_ctx1>>("shared_ptr<t_ctx1>")
         .function<t_index>("sidedness", &t_ctx1::sidedness)
-        .function<unsigned long>("get_row_count",
-            reinterpret_cast<unsigned long (t_ctx1::*)() const>(
-                &t_ctx1::get_row_count))
-        .function<unsigned long>("get_column_count",
-            reinterpret_cast<unsigned long (t_ctx1::*)() const>(
-                &t_ctx1::get_column_count))
+        .function<t_index>("get_row_count", &t_ctx1::get_row_count)
+        .function<t_index>("get_column_count", &t_ctx1::get_column_count)
         .function<t_tscalvec>("get_data", &t_ctx1::get_data)
+        .function<t_uindex>("get_leaf_count", &t_ctx1::get_leaf_count)
+        .function<t_tscalvec>("get_leaf_data", &t_ctx1::get_leaf_data)
         .function<t_stepdelta>("get_step_delta", &t_ctx1::get_step_delta)
         .function<t_cellupdvec>("get_cell_delta", &t_ctx1::get_cell_delta)
         .function<void>("set_depth", &t_ctx1::set_depth)
+        .function<t_depth>("get_depth", &t_ctx1::get_depth)
         .function("open", select_overload<t_index(t_tvidx)>(&t_ctx1::open))
         .function("close", select_overload<t_index(t_tvidx)>(&t_ctx1::close))
         .function<t_depth>("get_trav_depth", &t_ctx1::get_trav_depth)
         .function<t_aggspecvec>("get_column_names", &t_ctx1::get_aggregates)
+        .function<t_dtype>("get_column_dtype", &t_ctx1::get_column_dtype)
         .function<t_tscalvec>("unity_get_row_data", &t_ctx1::unity_get_row_data)
         .function<t_tscalvec>(
             "unity_get_column_data", &t_ctx1::unity_get_column_data)
@@ -1395,9 +1319,9 @@ EMSCRIPTEN_BINDINGS(perspective)
             "unity_get_column_name", &t_ctx1::unity_get_column_name)
         .function<t_str>("unity_get_column_display_name",
             &t_ctx1::unity_get_column_display_name)
-        .function<t_svec>(
+        .function<std::vector<t_str>>(
             "unity_get_column_names", &t_ctx1::unity_get_column_names)
-        .function<t_svec>("unity_get_column_display_names",
+        .function<std::vector<t_str>>("unity_get_column_display_names",
             &t_ctx1::unity_get_column_display_names)
         .function<t_uindex>(
             "unity_get_column_count", &t_ctx1::unity_get_column_count)
@@ -1413,21 +1337,21 @@ EMSCRIPTEN_BINDINGS(perspective)
         .constructor<t_schema, t_config>()
         .smart_ptr<std::shared_ptr<t_ctx2>>("shared_ptr<t_ctx2>")
         .function<t_index>("sidedness", &t_ctx2::sidedness)
-        .function<unsigned long>("get_row_count",
-            reinterpret_cast<unsigned long (t_ctx2::*)() const>(
-                select_overload<t_index() const>(&t_ctx2::get_row_count)))
-        .function<unsigned long>("get_column_count",
-            reinterpret_cast<unsigned long (t_ctx2::*)() const>(
-                &t_ctx2::get_column_count))
+        .function<t_index>("get_row_count", &t_ctx2::get_row_count)
+        .function<t_index>("get_column_count", &t_ctx2::get_column_count)
         .function<t_tscalvec>("get_data", &t_ctx2::get_data)
+        .function<t_uindex>("get_leaf_count", &t_ctx2::get_leaf_count)
+        .function<t_tscalvec>("get_leaf_data", &t_ctx2::get_leaf_data)
         .function<t_stepdelta>("get_step_delta", &t_ctx2::get_step_delta)
         //.function<t_cellupdvec>("get_cell_delta", &t_ctx2::get_cell_delta)
         .function<void>("set_depth", &t_ctx2::set_depth)
+        .function<t_depth>("get_depth", &t_ctx2::get_depth)
         .function(
             "open", select_overload<t_index(t_header, t_tvidx)>(&t_ctx2::open))
         .function("close",
             select_overload<t_index(t_header, t_tvidx)>(&t_ctx2::close))
         .function<t_aggspecvec>("get_column_names", &t_ctx2::get_aggregates)
+        .function<t_dtype>("get_column_dtype", &t_ctx2::get_column_dtype)
         .function<t_tscalvec>("unity_get_row_data", &t_ctx2::unity_get_row_data)
         .function<t_tscalvec>(
             "unity_get_column_data", &t_ctx2::unity_get_column_data)
@@ -1441,9 +1365,9 @@ EMSCRIPTEN_BINDINGS(perspective)
             "unity_get_column_name", &t_ctx2::unity_get_column_name)
         .function<t_str>("unity_get_column_display_name",
             &t_ctx2::unity_get_column_display_name)
-        .function<t_svec>(
+        .function<std::vector<t_str>>(
             "unity_get_column_names", &t_ctx2::unity_get_column_names)
-        .function<t_svec>("unity_get_column_display_names",
+        .function<std::vector<t_str>>("unity_get_column_display_names",
             &t_ctx2::unity_get_column_display_names)
         .function<t_uindex>(
             "unity_get_column_count", &t_ctx2::unity_get_column_count)
@@ -1474,7 +1398,7 @@ EMSCRIPTEN_BINDINGS(perspective)
         .function<void>("unregister_context", &t_pool::unregister_context)
         .function<t_updctx_vec>(
             "get_contexts_last_updated", &t_pool::get_contexts_last_updated)
-        .function<t_uidxvec>(
+        .function<std::vector<t_uindex>>(
             "get_gnodes_last_updated", &t_pool::get_gnodes_last_updated)
         .function<t_gnode*>(
             "get_gnode", &t_pool::get_gnode, allow_raw_pointers());
@@ -1499,13 +1423,13 @@ EMSCRIPTEN_BINDINGS(perspective)
         .field("columns_changed", &t_stepdelta::columns_changed)
         .field("cells", &t_stepdelta::cells);
 
-    register_vector<t_dtype>("t_dtypevec");
+    register_vector<t_dtype>("std::vector<t_dtype>");
     register_vector<t_cellupd>("t_cellupdvec");
     register_vector<t_aggspec>("t_aggspecvec");
     register_vector<t_tscalar>("t_tscalvec");
     register_vector<std::string>("std::vector<std::string>");
     register_vector<t_updctx>("t_updctx_vec");
-    register_vector<t_uindex>("t_uidxvec");
+    register_vector<t_uindex>("std::vector<t_uindex>");
 
     enum_<t_header>("t_header")
         .value("HEADER_ROW", HEADER_ROW)
@@ -1594,7 +1518,8 @@ EMSCRIPTEN_BINDINGS(perspective)
         .value("AGGTYPE_DISTINCT_COUNT", AGGTYPE_DISTINCT_COUNT)
         .value("AGGTYPE_DISTINCT_LEAF", AGGTYPE_DISTINCT_LEAF)
         .value("AGGTYPE_PCT_SUM_PARENT", AGGTYPE_PCT_SUM_PARENT)
-        .value("AGGTYPE_PCT_SUM_GRAND_TOTAL", AGGTYPE_PCT_SUM_GRAND_TOTAL);
+        .value("AGGTYPE_PCT_SUM_GRAND_TOTAL", AGGTYPE_PCT_SUM_GRAND_TOTAL)
+        .value("AGGTYPE_UDF_JS_REDUCE_FLOAT64", AGGTYPE_UDF_JS_REDUCE_FLOAT64);
 
     enum_<t_totals>("t_totals")
         .value("TOTALS_BEFORE", TOTALS_BEFORE)
@@ -1615,7 +1540,4 @@ EMSCRIPTEN_BINDINGS(perspective)
     function("get_data_zero", &get_data<t_ctx0_sptr>);
     function("get_data_one", &get_data<t_ctx1_sptr>);
     function("get_data_two", &get_data<t_ctx2_sptr>);
-    function("col_to_js_typed_array_zero", &col_to_js_typed_array<t_ctx0_sptr>);
-    function("col_to_js_typed_array_one", &col_to_js_typed_array<t_ctx1_sptr>);
-    function("col_to_js_typed_array_two", &col_to_js_typed_array<t_ctx2_sptr>);
 }

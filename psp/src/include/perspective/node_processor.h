@@ -46,7 +46,6 @@ template <int DTYPE_T>
 t_uindex
 t_pivot_processor<DTYPE_T>::operator()(const t_column* data,
     std::vector<t_dense_tnode>* nodes, t_column* values,
-
     t_column* leaves, t_uindex nbidx, t_uindex neidx, const t_mask* mask)
 {
 

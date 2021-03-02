@@ -52,7 +52,7 @@ t_traversal::t_traversal(t_stree_csptr tree, t_bool handle_nan_sort)
 void
 t_traversal::populate_root_children(const t_stnode_vec& rchildren)
 {
-    m_nodes = std::make_shared<t_tvnvec>(rchildren.size() + 1);
+    m_nodes = std::make_shared<std::vector<t_tvnode>>(rchildren.size() + 1);
 
     // Initialize root
     (*m_nodes)[0].m_expanded = true;
@@ -99,7 +99,7 @@ t_traversal::expand_node(t_tvidx exp_idx)
     t_stnode_vec tchildren;
     m_tree->get_child_nodes(exp_tvnode.m_tnid, tchildren);
     t_index n_changed = tchildren.size();
-    t_tvnvec children = t_tvnvec(n_changed);
+    std::vector<t_tvnode> children = std::vector<t_tvnode>(n_changed);
 
     t_index count = 0;
     for (t_stnode_vec::const_iterator iter = tchildren.begin();
@@ -147,9 +147,9 @@ t_traversal::expand_node(
     m_tree->get_child_nodes(exp_tvnode.m_tnid, tchildren);
     t_index n_changed = tchildren.size();
     t_index count = 0;
-    t_idxvec sorted_idx(n_changed);
+    std::vector<t_index> sorted_idx(n_changed);
 
-    t_idxvec sortby_agg_indices(sortby.size());
+    std::vector<t_index> sortby_agg_indices(sortby.size());
     t_uindex scount = 0;
     for (const auto& s : sortby)
     {
@@ -175,7 +175,7 @@ t_traversal::expand_node(
             ++child_idx;
         }
 
-        t_sorttvec sort_orders = get_sort_orders(sortby);
+        std::vector<t_sorttype> sort_orders = get_sort_orders(sortby);
         t_multisorter sorter(sortelems, sort_orders, m_handle_nan_sort);
         argsort(sorted_idx, sorter);
     }
@@ -185,7 +185,7 @@ t_traversal::expand_node(
             sorted_idx[i] = i;
     }
 
-    t_tvnvec children = t_tvnvec(n_changed);
+    std::vector<t_tvnode> children = std::vector<t_tvnode>(n_changed);
     count = 0;
     for (t_index idx = 0, loop_end = sorted_idx.size(); idx < loop_end; ++idx)
     {
@@ -248,11 +248,12 @@ t_traversal::collapse_node(t_tvidx idx)
 }
 
 void
-t_traversal::add_node(const t_sortsvec& sortby, const t_uidxvec& indices,
-    t_index insert_level_idx, t_ctx2* ctx2)
+t_traversal::add_node(const t_sortsvec& sortby,
+    const std::vector<t_uindex>& indices, t_index insert_level_idx,
+    t_ctx2* ctx2)
 {
     t_sortsvec dummy = sortby;
-    t_tvivec tv_indices;
+    std::vector<t_tvidx> tv_indices;
     t_tvidx collapsed_ancestor = INVALID_INDEX;
 
     get_expanded_span(
@@ -380,10 +381,10 @@ t_traversal::get_traversal_index(t_ptidx idx)
     return rval;
 }
 
-t_vdnvec
+std::vector<t_vdnode>
 t_traversal::get_view_nodes(t_tvidx bidx, t_tvidx eidx) const
 {
-    t_vdnvec vec(eidx - bidx);
+    std::vector<t_vdnode> vec(eidx - bidx);
     for (t_tvidx i = bidx; i < eidx; i++)
     {
         t_tvidx idx = i - bidx;
@@ -397,8 +398,8 @@ t_traversal::get_view_nodes(t_tvidx bidx, t_tvidx eidx) const
 }
 
 void
-t_traversal::get_expanded_span(const t_uidxvec& in_ptidxes,
-    t_tvivec& out_tvidxes, t_tvidx& out_collpsed_ancestor,
+t_traversal::get_expanded_span(const std::vector<t_uindex>& in_ptidxes,
+    std::vector<t_tvidx>& out_tvidxes, t_tvidx& out_collpsed_ancestor,
     t_index insert_level_idx)
 {
     t_tvidx pidx = 0;
@@ -457,7 +458,7 @@ t_traversal::get_expanded_span(const t_uidxvec& in_ptidxes,
 }
 
 bool
-t_traversal::validate_cells(const t_uidxpvec& cells) const
+t_traversal::validate_cells(const std::vector<t_uidxpair>& cells) const
 {
     t_uindex trav_size = size();
 
@@ -522,7 +523,7 @@ t_traversal::get_node(t_tvidx idx) const
 }
 
 void
-t_traversal::get_leaves(t_tvivec& out_data) const
+t_traversal::get_leaves(std::vector<t_tvidx>& out_data) const
 {
     for (t_tvidx curidx = 0, loop_end = m_nodes->size(); curidx < loop_end;
          ++curidx)
@@ -578,7 +579,7 @@ t_traversal::get_num_tree_leaves(t_tvidx idx) const
 }
 
 void
-t_traversal::post_order(t_tvidx nidx, t_tvivec& out_vec)
+t_traversal::post_order(t_tvidx nidx, std::vector<t_tvidx>& out_vec)
 {
     std::vector<std::pair<t_tvidx, t_ptidx>> children;
     get_child_indices(nidx, children);
@@ -595,7 +596,7 @@ t_traversal::post_order(t_tvidx nidx, t_tvivec& out_vec)
 t_index
 t_traversal::set_depth(const t_sortsvec& sortby, t_depth depth, t_ctx2* ctx2)
 {
-    t_ptivec pending;
+    std::vector<t_ptidx> pending;
     depth = depth + 1;
     pending.push_back(0);
     t_index n_changed = 0;
@@ -606,7 +607,7 @@ t_traversal::set_depth(const t_sortsvec& sortby, t_depth depth, t_ctx2* ctx2)
         n_changed += expand_node(sortby, curidx, ctx2);
         std::vector<std::pair<t_tvidx, t_ptidx>> children;
         get_child_indices(curidx, children);
-        t_ptivec collapse;
+        std::vector<t_ptidx> collapse;
         for (t_index idx = 0, loop_end = children.size(); idx < loop_end; ++idx)
         {
             const std::pair<t_tvidx, t_ptidx>& child = children[idx];
@@ -622,7 +623,7 @@ t_traversal::set_depth(const t_sortsvec& sortby, t_depth depth, t_ctx2* ctx2)
             }
         }
         // Now collapse any children
-        for (t_ptivec::reverse_iterator rit = collapse.rbegin();
+        for (std::vector<t_ptidx>::reverse_iterator rit = collapse.rbegin();
              rit != collapse.rend(); ++rit)
         {
             t_tvidx curidx = *rit;
@@ -633,12 +634,12 @@ t_traversal::set_depth(const t_sortsvec& sortby, t_depth depth, t_ctx2* ctx2)
     return n_changed;
 }
 
-t_ftnvec
+std::vector<t_ftreenode>
 t_traversal::get_flattened_tree(t_tvidx idx, t_depth stop_depth) const
 {
     std::queue<t_tvidx> queue;
     queue.push(idx);
-    t_ftnvec rvec;
+    std::vector<t_ftreenode> rvec;
     t_index rvec_idx = 1;
     while (!queue.empty())
     {
@@ -655,11 +656,12 @@ t_traversal::get_flattened_tree(t_tvidx idx, t_depth stop_depth) const
             rnode.m_nchild = nchild;
             rnode.m_depth = c_node.m_depth;
             t_tvidx curr_cidx = hidx + 1;
-            t_tvivec children(nchild);
+            // std::vector<t_tvidx> children(nchild);
             for (int cidx = 0; cidx < nchild; cidx++)
             {
                 const t_tvnode& child_node = (*m_nodes)[curr_cidx];
-                children[cidx] = curr_cidx;
+                queue.push(curr_cidx);
+                // children[cidx] = curr_cidx;
                 if (child_node.m_expanded)
                 {
                     curr_cidx = curr_cidx + child_node.m_ndesc + 1;
@@ -670,17 +672,15 @@ t_traversal::get_flattened_tree(t_tvidx idx, t_depth stop_depth) const
                 }
                 rvec_idx++;
             }
-            for (t_index cidx = 0, loop_end = children.size(); cidx < loop_end;
-                 ++cidx)
-            {
-                queue.push(children[cidx]);
-            }
+            /*for (t_index cidx = 0, loop_end = children.size(); cidx <
+            loop_end; ++cidx) { queue.push(children[cidx]);
+            }*/
         }
         else
         {
-            rnode.m_fcidx = 0;
+            rnode.m_fcidx = INVALID_INDEX;
             rnode.m_nchild = 0;
-            rnode.m_depth = INVALID_INDEX;
+            rnode.m_depth = curdepth;
         }
         rvec.push_back(rnode);
     }
@@ -703,7 +703,8 @@ t_traversal::tree_index_lookup(t_ptidx idx, t_tvidx bidx) const
 }
 
 void
-t_traversal::get_node_ancestors(t_tvidx nidx, t_tvivec& ancestors) const
+t_traversal::get_node_ancestors(
+    t_tvidx nidx, std::vector<t_tvidx>& ancestors) const
 {
     if (nidx == 0)
         return;
@@ -725,11 +726,11 @@ t_traversal::get_node_ancestors(t_tvidx nidx, t_tvivec& ancestors) const
 }
 
 void
-t_traversal::get_expanded(t_ptivec& expanded_tidx) const
+t_traversal::get_expanded(std::vector<t_ptidx>& expanded_tidx) const
 {
     // Ancestors of expanded nodes
     std::set<t_tvidx> ancestors;
-    t_tvivec expanded;
+    std::vector<t_tvidx> expanded;
 
     if (m_nodes->size() == 0)
         return;
@@ -741,13 +742,13 @@ t_traversal::get_expanded(t_ptivec& expanded_tidx) const
         if (node.m_expanded && ancestors.find(i) == ancestors.end())
         {
             expanded.push_back(i);
-            t_tvivec node_ancestors;
+            std::vector<t_tvidx> node_ancestors;
             get_node_ancestors(i, node_ancestors);
             ancestors.insert(node_ancestors.begin(), node_ancestors.end());
         }
     }
 
-    t_ptivec rval(expanded.size());
+    std::vector<t_ptidx> rval(expanded.size());
 
     for (t_index i = 0, loop_end = rval.size(); i < loop_end; i++)
     {
@@ -759,7 +760,7 @@ t_traversal::get_expanded(t_ptivec& expanded_tidx) const
 }
 
 void
-t_traversal::drop_tree_indices(const t_uidxvec& indices)
+t_traversal::drop_tree_indices(const std::vector<t_uindex>& indices)
 {
     for (auto idx : indices)
     {

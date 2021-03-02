@@ -24,4 +24,4 @@ fill_travnode(t_tvnode* node, bool expanded, t_uindex depth, t_uindex rel_pidx,
     node->m_tnid = tnid;
     node->m_nchild = 0;
 }
-}; // namespace perspective
+} // namespace perspective

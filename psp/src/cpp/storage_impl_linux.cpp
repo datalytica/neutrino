@@ -9,7 +9,7 @@
 
 #include <perspective/first.h>
 
-#ifdef __linux__
+#if defined(__linux__) || defined(PSP_ENABLE_WASM)
 #include <perspective/base.h>
 #include <perspective/raw_types.h>
 #include <perspective/storage.h>
@@ -81,6 +81,7 @@ t_lstore::create_file()
     t_index rcode = ftruncate(fd, truncate_bytes);
 
     PSP_VERBOSE_ASSERT(rcode >= 0, "Ftruncate failed");
+    PSP_UNUSED(rcode);
     return fd;
 }
 
@@ -89,6 +90,7 @@ t_lstore::create_mapping()
 {
     void* rval = mmap(0, capacity(), m_mprot, m_mflags, m_fd, 0);
     PSP_VERBOSE_ASSERT(rval != MAP_FAILED, "mmap failed");
+    PSP_UNUSED(rval);
     return rval;
 }
 
@@ -97,6 +99,8 @@ t_lstore::resize_mapping(t_uindex cap_new)
 {
     t_index rcode = ftruncate(m_fd, cap_new);
     PSP_VERBOSE_ASSERT(rcode == 0, "ftruncate failed");
+    PSP_UNUSED(rcode);
+
     void* base = mremap(m_base, capacity(), cap_new, MREMAP_MAYMOVE);
 
     if (base == MAP_FAILED)
@@ -112,6 +116,7 @@ void
 t_lstore::destroy_mapping()
 {
     t_rcode rc = munmap(m_base, capacity());
+    PSP_UNUSED(rc);
     PSP_VERBOSE_ASSERT(!rc, "Failed to destroy mapping");
 }
 

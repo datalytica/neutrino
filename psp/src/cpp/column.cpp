@@ -14,6 +14,8 @@ SUPPRESS_WARNINGS_VC(4505)
 #include <perspective/defaults.h>
 #include <perspective/base.h>
 #include <perspective/sym_table.h>
+#include <perspective/vocab.h>
+#include <perspective/mask.h>
 #include <unordered_set>
 
 namespace perspective
@@ -72,41 +74,15 @@ t_column::t_column(const t_column_recipe& recipe)
     }
 }
 
-void
-t_column::column_copy_helper(const t_column& other)
-{
-    m_dtype = other.m_dtype;
-    m_init = false;
-    m_isvlen = other.m_isvlen;
-    m_data.reset(new t_lstore(other.m_data->get_recipe()));
-    m_vocab.reset(new t_vocab(other.m_vocab->get_vlendata()->get_recipe(),
-        other.m_vocab->get_extents()->get_recipe()));
-    m_status.reset(new t_lstore(other.m_status->get_recipe()));
-
-    m_size = other.m_size;
-    m_status_enabled = other.m_status_enabled;
-    m_from_recipe = false;
-}
-
-t_column::t_column(const t_column& c)
-{
-    PSP_VERBOSE_ASSERT(this != &c, "Assigning self");
-    column_copy_helper(c);
-    m_init = false;
-}
-
-t_column&
-t_column::operator=(const t_column& c)
-{
-    PSP_VERBOSE_ASSERT(this != &c, "Assigning self");
-    column_copy_helper(c);
-    m_init = false;
-    return *this;
-}
-
 t_column::t_column(
     t_dtype dtype, t_bool missing_enabled, const t_lstore_recipe& a)
     : t_column(dtype, missing_enabled, a, a.m_capacity / get_dtype_size(dtype))
+{
+}
+
+t_column::t_column(t_dtype dtype, t_bool missing_enabled, t_uindex row_capacity)
+    : t_column(dtype, missing_enabled,
+          t_lstore_recipe(row_capacity * get_dtype_size(dtype)), row_capacity)
 {
 }
 
@@ -156,6 +132,18 @@ t_column::t_column(t_dtype dtype, t_bool missing_enabled,
     {
         m_status.reset(new t_lstore);
     }
+}
+
+t_col_sptr
+t_column::build(t_dtype dtype, const t_tscalvec& vec)
+{
+    auto rv = std::make_shared<t_column>(dtype, true, vec.size());
+    rv->init();
+    for (const auto& s : vec)
+    {
+        rv->push_back(s);
+    }
+    return rv;
 }
 
 bool
@@ -943,7 +931,7 @@ t_column::pprint_vocabulary() const
 t_col_sptr
 t_column::clone() const
 {
-    auto rval = std::make_shared<t_column>(*this);
+    auto rval = std::make_shared<t_column>(m_dtype, is_status_enabled(), m_data->capacity() / get_dtype_size(m_dtype));
     rval->init();
     rval->set_size(size());
     rval->m_data->fill(*m_data);
@@ -972,7 +960,7 @@ t_column::clone(const t_mask& mask) const
         return clone();
     }
 
-    auto rval = std::make_shared<t_column>(*this);
+    auto rval = std::make_shared<t_column>(m_dtype, is_status_enabled(), m_data->capacity() / get_dtype_size(m_dtype));
     rval->init();
     rval->set_size(mask.size());
 
@@ -1000,7 +988,8 @@ t_column::valid_raw_fill()
 }
 
 void
-t_column::copy(const t_column* other, const t_uidxvec& indices, t_uindex offset)
+t_column::copy(const t_column* other, const std::vector<t_uindex>& indices,
+    t_uindex offset)
 {
     PSP_VERBOSE_ASSERT(
         m_dtype == other->get_dtype(), "Cannot copy from diff dtype");
@@ -1090,8 +1079,8 @@ t_column::copy(const t_column* other, const t_uidxvec& indices, t_uindex offset)
 
 template <>
 void
-t_column::copy_helper<const char>(
-    const t_column* other, const t_uidxvec& indices, t_uindex offset)
+t_column::copy_helper<const char>(const t_column* other,
+    const std::vector<t_uindex>& indices, t_uindex offset)
 {
     t_uindex eidx
         = std::min(other->size(), static_cast<t_uindex>(indices.size()));
@@ -1123,11 +1112,6 @@ t_column::fill(std::vector<const char*>& vec, const t_uindex* bidx,
 void
 t_column::verify() const
 {
-    if (is_vlen_dtype(m_dtype) && m_init)
-    {
-        m_vocab->verify();
-    }
-
     verify_size();
 }
 
@@ -1180,4 +1164,28 @@ t_column::borrow_vocabulary(const t_column& o)
     m_vocab = const_cast<t_column&>(o).m_vocab;
 }
 
+void
+t_column::set_vocabulary(
+    const std::vector<std::pair<t_tscalar, t_uindex>>& vocab, size_t total_size)
+{
+    if (total_size)
+        m_vocab->reserve(total_size, vocab.size() + 1);
+
+    for (const auto& kv : vocab)
+        m_vocab->get_interned(kv.first.get_char_ptr());
+}
+
+void
+t_column::set_nth_body(t_uindex idx, const char* elem, t_status status)
+{
+    COLUMN_CHECK_ACCESS(idx);
+    PSP_VERBOSE_ASSERT(m_dtype == DTYPE_STR, "Setting non string column");
+    t_uindex interned = m_vocab->get_interned(elem);
+    m_data->set_nth<t_uindex>(idx, interned);
+
+    if (is_status_enabled())
+    {
+        m_status->set_nth<t_status>(idx, status);
+    }
+}
 } // end namespace perspective

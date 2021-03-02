@@ -10,6 +10,8 @@
 #include <perspective/first.h>
 #include <perspective/vocab.h>
 #include <unordered_set>
+#include <sstream>
+#include <iostream>
 
 namespace perspective
 {
@@ -82,7 +84,7 @@ t_vocab::get_interned(const char* s)
     PSP_VERBOSE_ASSERT(s != 0, "Null string");
 #endif
 
-    t_sidxmap::iterator iter = m_map.find(s);
+    auto iter = m_map.find(s);
 
     t_uindex idx, bidx, eidx;
     t_uindex len = strlen(s) + 1;
@@ -147,42 +149,6 @@ t_uindex
 t_vocab::get_interned(const t_str& s)
 {
     return get_interned(s.c_str());
-}
-
-void
-t_vocab::verify() const
-{
-    std::map<t_stridx, const char*> rlookup;
-
-    for (const auto& kv : m_map)
-    {
-        rlookup[kv.second] = kv.first;
-    }
-
-#ifndef PSP_ENABLE_WASM
-    auto zero = rlookup.find(t_stridx(0));
-    PSP_VERBOSE_ASSERT(zero != rlookup.end(), "0 Not found");
-    PSP_VERBOSE_ASSERT(t_str(zero->second) == "", "0 mapped to unknown");
-#endif
-
-    std::unordered_set<t_str> seen;
-#ifndef PSP_ENABLE_WASM
-    seen.insert(t_str(""));
-#endif
-
-    for (t_uindex idx = 1; idx < m_vlenidx; ++idx)
-    {
-        std::stringstream ss;
-        ss << "idx => " << idx << " not found";
-        PSP_VERBOSE_ASSERT(rlookup.find(idx) != rlookup.end(), ss.str());
-
-        t_str curstr = t_str(rlookup.at(idx));
-
-        PSP_VERBOSE_ASSERT(
-            seen.find(curstr) == seen.end(), "string encountered again");
-
-        PSP_VERBOSE_ASSERT(t_str(unintern_c(idx)) == curstr, "String mismatch");
-    }
 }
 
 void
@@ -256,18 +222,6 @@ void
 t_vocab::set_vlenidx(t_uindex idx)
 {
     m_vlenidx = idx;
-}
-
-t_extent_pair*
-t_vocab::get_extents_base()
-{
-    return m_extents->get<t_extent_pair>(0);
-}
-
-t_uchar*
-t_vocab::get_vlen_base()
-{
-    return m_vlendata->get<t_uchar>(0);
 }
 
 t_lstore_sptr

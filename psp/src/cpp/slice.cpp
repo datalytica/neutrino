@@ -33,13 +33,13 @@ t_slice::column_paths() const
     return m_column_paths;
 }
 
-const t_idxvec&
+const std::vector<t_index>&
 t_slice::row_indices() const
 {
     return m_row_indices;
 }
 
-const t_idxvec&
+const std::vector<t_index>&
 t_slice::column_indices() const
 {
     return m_column_indices;
@@ -57,26 +57,26 @@ t_slice::column_data() const
     return m_column_data;
 }
 
-const t_uidxvec&
+const std::vector<t_uindex>&
 t_slice::row_depth() const
 {
 
     return m_row_depth;
 }
 
-const t_uidxvec&
+const std::vector<t_uindex>&
 t_slice::column_depth() const
 {
     return m_column_depth;
 }
 
-const t_uidxvec&
+const std::vector<t_uindex>&
 t_slice::is_row_expanded() const
 {
     return m_is_row_expanded;
 }
 
-const t_uidxvec&
+const std::vector<t_uindex>&
 t_slice::is_column_expanded() const
 {
     return m_is_column_expanded;
@@ -100,13 +100,13 @@ t_slice::column_paths()
     return m_column_paths;
 }
 
-t_idxvec&
+std::vector<t_index>&
 t_slice::row_indices()
 {
     return m_row_indices;
 }
 
-t_idxvec&
+std::vector<t_index>&
 t_slice::column_indices()
 {
     return m_column_indices;
@@ -124,26 +124,26 @@ t_slice::column_data()
     return m_column_data;
 }
 
-t_uidxvec&
+std::vector<t_uindex>&
 t_slice::row_depth()
 {
 
     return m_row_depth;
 }
 
-t_uidxvec&
+std::vector<t_uindex>&
 t_slice::column_depth()
 {
     return m_column_depth;
 }
 
-t_uidxvec&
+std::vector<t_uindex>&
 t_slice::is_row_expanded()
 {
     return m_is_row_expanded;
 }
 
-t_uidxvec&
+std::vector<t_uindex>&
 t_slice::is_column_expanded()
 {
     return m_is_column_expanded;

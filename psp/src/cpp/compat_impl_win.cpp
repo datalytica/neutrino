@@ -15,7 +15,7 @@
 #include <perspective/raii.h>
 #include <perspective/utils.h>
 #include <cstdio>
-#include <psapi.h>
+//#include <psapi.h>
 
 namespace perspective
 {
@@ -251,9 +251,9 @@ psp_dbg_malloc(size_t size)
     SYSTEM_INFO sys_info;
     GetSystemInfo(&sys_info);
     auto page = 2 * sys_info.dwPageSize;
-    assert((page & (static_cast<ssize_t>(page) - 1)) == 0);
-    auto rounded_size = (size + static_cast<ssize_t>(page) - 1)
-        & (-static_cast<ssize_t>(page));
+    assert((page & (static_cast<t_index>(page) - 1)) == 0);
+    auto rounded_size = (size + static_cast<t_index>(page) - 1)
+        & (-static_cast<t_index>(page));
     BYTE* start = (BYTE*)VirtualAlloc(
         NULL, rounded_size + page, MEM_COMMIT, PAGE_READWRITE);
     DWORD old_protect;

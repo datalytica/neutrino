@@ -39,6 +39,7 @@ struct PERSPECTIVE_EXPORT t_env
         return rv;
     }
 
+
     static inline t_bool
     log_data_pool_send()
     {
@@ -65,6 +66,14 @@ struct PERSPECTIVE_EXPORT t_env
     {
         static const t_bool rv
             = std::getenv("PSP_LOG_DATA_GNODE_FLATTENED") != 0;
+        return rv;
+    }
+
+    static inline t_bool
+    log_data_gnode_flattened_mask()
+    {
+        static const t_bool rv
+            = std::getenv("PSP_LOG_DATA_GNODE_FLATTENED_MASK") != 0;
         return rv;
     }
 

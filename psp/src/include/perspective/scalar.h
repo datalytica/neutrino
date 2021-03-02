@@ -92,7 +92,6 @@ struct PERSPECTIVE_EXPORT t_tscalar
     bool is_nan() const;
     bool is_none() const;
     bool is_str() const;
-    bool is_of_type(t_uchar t) const;
     bool is_floating_point() const;
     bool is_signed() const;
 
@@ -146,6 +145,56 @@ struct PERSPECTIVE_EXPORT t_tscalar
     t_status m_status;
     t_bool m_inplace;
 };
+
+inline t_tscalar operator"" _ts(long double v)
+{
+    t_tscalar rv;
+    t_float64 tmp = v;
+    rv.set(tmp);
+    return rv;
+}
+
+inline t_tscalar operator"" _ts(unsigned long long int v)
+{
+    t_tscalar rv;
+    t_int64 tmp = v;
+    rv.set(tmp);
+    return rv;
+}
+
+inline t_tscalar operator"" _ts(const char* v, std::size_t len)
+{
+    t_tscalar rv;
+    rv.set(v);
+    return rv;
+}
+
+inline t_tscalar operator"" _ns(long double v)
+{
+    t_tscalar rv;
+    rv.m_data.m_uint64 = 0;
+    rv.m_type = DTYPE_FLOAT64;
+    rv.m_status = STATUS_INVALID;
+    return rv;
+}
+
+inline t_tscalar operator"" _ns(unsigned long long int v)
+{
+    t_tscalar rv;
+    rv.m_data.m_uint64 = 0;
+    rv.m_type = DTYPE_INT64;
+    rv.m_status = STATUS_INVALID;
+    return rv;
+}
+
+inline t_tscalar operator"" _ns(const char* v, std::size_t len)
+{
+    t_tscalar rv;
+    rv.m_data.m_uint64 = 0;
+    rv.m_type = DTYPE_STR;
+    rv.m_status = STATUS_INVALID;
+    return rv;
+}
 
 typedef std::vector<t_tscalar> t_tscalvec;
 typedef boost::unordered_set<t_tscalar> t_tscalset;
@@ -359,7 +408,27 @@ mktscalar(const T& v)
     return rval;
 }
 
-t_tscalar mktscalar();
+inline t_tscalar
+mknull(t_dtype dtype)
+{
+    t_tscalar rval;
+    rval.m_data.m_uint64 = 0;
+    rval.m_status = STATUS_INVALID;
+    rval.m_type = dtype;
+    if (dtype == DTYPE_STR)
+    {
+        rval.m_inplace = true;
+    }
+    return rval;
+}
+
+inline t_tscalar
+mkclear(t_dtype dtype)
+{
+    t_tscalar rval = mknull(dtype);
+    rval.m_status = STATUS_CLEAR;
+    return rval;
+}
 
 } // end namespace perspective
 

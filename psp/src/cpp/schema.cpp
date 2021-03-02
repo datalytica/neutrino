@@ -9,6 +9,8 @@
 
 #include <perspective/first.h>
 #include <perspective/schema.h>
+#include <sstream>
+#include <iostream>
 
 namespace perspective
 {
@@ -22,7 +24,8 @@ t_schema::t_schema(const t_schema_recipe& recipe)
 {
 }
 
-t_schema::t_schema(const t_svec& columns, const t_dtypevec& types)
+t_schema::t_schema(
+    const std::vector<t_str>& columns, const std::vector<t_dtype>& types)
     : m_columns(columns)
     , m_types(types)
     , m_status_enabled(columns.size())
@@ -36,10 +39,12 @@ t_schema::t_schema(const t_svec& columns, const t_dtypevec& types)
 
     t_str pkey_str("psp_pkey");
     t_str op_str("psp_op");
-    for (t_svec::size_type idx = 0, loop_end = types.size(); idx < loop_end;
-         ++idx)
+    for (std::vector<t_str>::size_type idx = 0, loop_end = types.size();
+         idx < loop_end; ++idx)
     {
         m_colidx_map[columns[idx]] = idx;
+        PSP_VERBOSE_ASSERT(m_coldt_map.find(columns[idx]) == m_coldt_map.end(),
+            "Duplicate column detected");
         m_coldt_map[columns[idx]] = types[idx];
         m_status_enabled[idx] = true;
         if (columns[idx] == pkey_str)
@@ -148,30 +153,16 @@ t_schema::has_column(const t_str& colname) const
     return iter != m_colidx_map.end();
 }
 
-const t_svec&
+const std::vector<t_str>&
 t_schema::columns() const
 {
     return m_columns;
 }
 
-const t_dtypevec
+const std::vector<t_dtype>
 t_schema::types() const
 {
     return m_types;
-}
-
-t_table_static_ctx
-t_schema::get_table_context() const
-{
-    t_table_static_ctx rv;
-    for (size_t idx = 0, loop_end = m_columns.size(); idx < loop_end; ++idx)
-    {
-        t_column_static_ctx v;
-        v.m_colname = m_columns[idx];
-        v.m_dtype = m_types[idx];
-        rv.m_columns.push_back(v);
-    }
-    return rv;
 }
 
 t_str
@@ -180,6 +171,34 @@ t_schema::str() const
     std::stringstream ss;
     ss << *this;
     return ss.str();
+}
+
+t_schema
+t_schema::drop(const std::set<t_str>& columns) const
+{
+    std::vector<t_str> cols;
+    std::vector<t_dtype> types;
+
+    for (t_uindex idx = 0, loop_end = m_columns.size(); idx < loop_end; ++idx)
+    {
+        if (columns.find(m_columns[idx]) == columns.end())
+        {
+            cols.push_back(m_columns[idx]);
+            types.push_back(m_types[idx]);
+        }
+    }
+    return t_schema(cols, types);
+}
+
+t_schema
+t_schema::operator+(const t_schema& o) const
+{
+    t_schema rv(m_columns, m_types);
+    for (t_uindex idx = 0, loop_end = o.m_columns.size(); idx < loop_end; ++idx)
+    {
+        rv.add_column(o.m_columns[idx], o.m_types[idx]);
+    }
+    return rv;
 }
 
 } // end namespace perspective
@@ -191,8 +210,8 @@ std::ostream&
 operator<<(std::ostream& os, const perspective::t_schema& s)
 {
     using namespace perspective;
-    const t_svec& cols = s.columns();
-    const t_dtypevec& types = s.types();
+    const std::vector<t_str>& cols = s.columns();
+    const std::vector<t_dtype>& types = s.types();
 
     os << "t_schema<\n";
     for (size_t idx = 0, loop_end = cols.size(); idx < loop_end; ++idx)

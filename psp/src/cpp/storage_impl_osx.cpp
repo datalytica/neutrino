@@ -83,6 +83,7 @@ t_lstore::create_file()
     t_index rcode = ftruncate(fd, truncate_bytes);
 
     PSP_VERBOSE_ASSERT(rcode >= 0, "Ftruncate failed");
+    PSP_UNUSED(rcode);
     return fd;
 }
 
@@ -99,7 +100,7 @@ t_lstore::resize_mapping(t_uindex cap_new)
 {
     t_index rcode = ftruncate(m_fd, cap_new);
     PSP_VERBOSE_ASSERT(rcode == 0, "ftruncate failed");
-
+    PSP_UNUSED(rcode);
     if (munmap(m_base, capacity()) == -1)
     {
         throw;
@@ -121,6 +122,7 @@ t_lstore::destroy_mapping()
 {
     t_rcode rc = munmap(m_base, capacity());
     PSP_VERBOSE_ASSERT(!rc, "Failed to destroy mapping");
+    PSP_UNUSED(rc);
 }
 
 void
@@ -138,3 +140,4 @@ t_lstore::unfreeze_impl()
 } // end namespace perspective
 
 #endif
+     

@@ -8,14 +8,14 @@
  */
 
 #pragma once
-#include <perspective/first.h>
 #include <perspective/scalar.h>
-#include <perspective/column.h>
-#include <perspective/aggspec.h>
 #include <perspective/base.h>
 
 namespace perspective
 {
+
+class t_column;
+class t_aggspec;
 
 t_tscalar extract_aggregate(const t_aggspec& aggspec, const t_column* aggcol,
     t_uindex ridx, t_index pridx);

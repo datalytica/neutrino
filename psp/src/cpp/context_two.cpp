@@ -19,19 +19,19 @@
 namespace perspective
 {
 t_ctx2::t_ctx2()
-    : m_row_depth_set(false)
-    , m_column_depth_set(false)
-    , m_row_depth(0)
+    : m_row_depth(0)
+    , m_row_depth_set(false)
     , m_column_depth(0)
+    , m_column_depth_set(false)
 {
 }
 
 t_ctx2::t_ctx2(const t_schema& schema, const t_config& pivot_config)
     : t_ctxbase<t_ctx2>(schema, pivot_config)
-    , m_row_depth_set(false)
-    , m_column_depth_set(false)
     , m_row_depth(0)
+    , m_row_depth_set(false)
     , m_column_depth(0)
+    , m_column_depth_set(false)
 {
 }
 
@@ -191,7 +191,7 @@ t_ctx2::get_totals() const
     return m_config.get_totals();
 }
 
-t_tvivec
+std::vector<t_tvidx>
 t_ctx2::get_ctraversal_indices() const
 {
     switch (m_config.get_totals())
@@ -200,7 +200,7 @@ t_ctx2::get_ctraversal_indices() const
         {
             t_index nelems = m_ctraversal->size();
             PSP_VERBOSE_ASSERT(nelems > 0, "nelems is <= 0");
-            t_tvivec rval(nelems);
+            std::vector<t_tvidx> rval(nelems);
             for (t_index cidx = 0; cidx < nelems; ++cidx)
             {
                 rval[cidx] = cidx;
@@ -210,16 +210,16 @@ t_ctx2::get_ctraversal_indices() const
         break;
         case TOTALS_AFTER:
         {
-            t_tvivec col_order;
+            std::vector<t_tvidx> col_order;
             m_ctraversal->post_order(0, col_order);
             return col_order;
         }
         break;
         case TOTALS_HIDDEN:
         {
-            t_tvivec leaves;
+            std::vector<t_tvidx> leaves;
             m_ctraversal->get_leaves(leaves);
-            t_tvivec rval(leaves.size() + 1);
+            std::vector<t_tvidx> rval(leaves.size() + 1);
             rval[0] = 0;
             for (t_uindex idx = 1, loop_end = rval.size(); idx < loop_end;
                  ++idx)
@@ -234,7 +234,7 @@ t_ctx2::get_ctraversal_indices() const
             PSP_COMPLAIN_AND_ABORT("Unknown total type");
         }
     }
-    return t_tvivec();
+    return std::vector<t_tvidx>();
 }
 
 t_tscalvec
@@ -244,7 +244,7 @@ t_ctx2::get_data(t_tvidx start_row, t_tvidx end_row, t_tvidx start_col,
     auto ext = sanitize_get_data_extents(
         *this, start_row, end_row, start_col, end_col);
 
-    t_uidxpvec cells;
+    std::vector<t_uidxpair> cells;
     for (t_index ridx = ext.m_srow; ridx < ext.m_erow; ++ridx)
     {
         for (t_index cidx = ext.m_scol; cidx < ext.m_ecol; ++cidx)
@@ -418,12 +418,12 @@ t_ctx2::calc_translated_colidx(t_uindex n_aggs, t_uindex cidx) const
 }
 
 t_cinfovec
-t_ctx2::resolve_cells(const t_uidxpvec& cells) const
+t_ctx2::resolve_cells(const std::vector<t_uidxpair>& cells) const
 {
     t_cinfovec rval(cells.size());
 
     t_index n_aggs = m_config.get_num_aggregates();
-    t_tvivec c_tvindices = get_ctraversal_indices();
+    std::vector<t_tvidx> c_tvindices = get_ctraversal_indices();
 
     std::vector<t_tscalvec> col_paths(m_ctraversal->size());
 
@@ -645,14 +645,14 @@ t_ctx2::translate_column_index(t_tvidx idx) const
         break;
         case TOTALS_AFTER:
         {
-            t_tvivec col_order;
+            std::vector<t_tvidx> col_order;
             m_ctraversal->post_order(0, col_order);
             rval = col_order[(idx - 1) / m_config.get_num_aggregates()];
         }
         break;
         case TOTALS_HIDDEN:
         {
-            t_tvivec leaves;
+            std::vector<t_tvidx> leaves;
             m_ctraversal->get_leaves(leaves);
             rval = leaves[(idx - 1) / m_config.get_num_aggregates()];
         }
@@ -709,8 +709,32 @@ t_ctx2::set_depth(t_header header, t_depth depth)
     }
 }
 
+t_depth
+t_ctx2::get_depth(t_header header) const
+{
+    switch (header)
+    {
+        case HEADER_ROW:
+        {
+            return m_row_depth;
+        }
+        break;
+        case HEADER_COLUMN:
+        {
+            return m_column_depth;
+        }
+        break;
+        default:
+        {
+            PSP_COMPLAIN_AND_ABORT("Invalid header");
+        }
+        break;
+    }
+    return m_row_depth;
+}
+
 t_tscalvec
-t_ctx2::get_pkeys(const t_uidxpvec& cells) const
+t_ctx2::get_pkeys(const std::vector<t_uidxpair>& cells) const
 {
     t_tscalset all_pkeys;
 
@@ -733,7 +757,7 @@ t_ctx2::get_pkeys(const t_uidxpvec& cells) const
 }
 
 t_tscalvec
-t_ctx2::get_cell_data(const t_uidxpvec& cells) const
+t_ctx2::get_cell_data(const std::vector<t_uidxpair>& cells) const
 {
     t_tscalvec rval(cells.size());
     t_tscalar empty;
@@ -773,7 +797,7 @@ t_ctx2::get_step_delta(t_tvidx bidx, t_tvidx eidx)
     auto ext = sanitize_get_data_extents(
         *this, start_row, end_row, start_col, end_col);
 
-    t_uidxpvec cells;
+    std::vector<t_uidxpair> cells;
 
     for (t_index ridx = ext.m_srow; ridx < ext.m_erow; ++ridx)
     {
@@ -904,6 +928,148 @@ t_ctx2::get_trees()
     return rval;
 }
 
+t_uindex
+t_ctx2::get_leaf_count(t_header header) const
+{
+    switch (header)
+    {
+        case HEADER_ROW:
+            return m_trees.back()->get_num_leaves(m_row_depth + 1);
+        case HEADER_COLUMN:
+            return m_trees.front()->get_num_leaves(m_column_depth + 1);
+        default:
+        {
+            PSP_COMPLAIN_AND_ABORT("Bad header passed in");
+            return 0;
+        }
+    }
+}
+
+t_tscalvec
+t_ctx2::get_leaf_data(t_uindex start_row, t_uindex end_row, t_uindex start_col,
+    t_uindex end_col) const
+{
+    t_depth row_depth = m_row_depth + 1;
+    t_depth column_depth = m_column_depth + 1;
+    t_index nrows = end_row - start_row;
+    t_index stride = end_col - start_col;
+    t_tscalvec retval((nrows + 1) * stride);
+    t_index n_aggs = m_config.get_num_aggregates();
+    t_tscalvec r_path;
+    r_path.reserve(m_config.get_num_rpivots() + m_config.get_num_cpivots() + 1);
+    t_tscalar empty = t_tscalar::canonical(DTYPE_NONE);
+    t_index ridx = 0;
+    t_depth minus_one = -1;
+    t_depth last_depth = -1;
+    auto tree = m_trees[row_depth];
+    std::vector<t_tscalvec> col_paths(end_col);
+    static const char unit_sep = 0x1F;
+    std::vector<t_index> cidxvec
+        = m_trees[0]->get_indices_for_depth(column_depth);
+    for (t_uindex cidx = 0; cidx < end_col - row_depth; ++cidx)
+    {
+        t_index translated_idx = cidx / n_aggs;
+        t_ptidx c_ptidx = cidxvec[translated_idx];
+        col_paths[cidx].reserve(m_config.get_num_cpivots());
+        m_trees[0]->get_path(c_ptidx, col_paths[cidx]);
+        std::stringstream label;
+        t_tscalvec& plabels = col_paths[cidx];
+        if (!plabels.empty())
+        {
+            auto last = plabels.rend() - 1;
+            for (auto lit = plabels.rbegin(); lit != last; ++lit)
+            {
+                label << lit->to_string() << unit_sep;
+            }
+            label << last->to_string();
+        }
+        retval[cidx + row_depth].set(get_interned_tscalar(label.str().c_str()));
+    }
+    // Iterate by depth
+    std::deque<t_uindex> dft;
+    dft.push_front(0);
+    std::vector<t_tscalar> pheader;
+    while (!dft.empty())
+    {
+        auto nidx = dft.front();
+        dft.pop_front();
+        t_stnode node = tree->get_node(nidx);
+        if (node.m_depth < row_depth)
+        {
+            if (node.m_depth < last_depth && last_depth != minus_one)
+            {
+                for (t_uindex i = 0; i < last_depth - node.m_depth; ++i)
+                {
+                    pheader.pop_back();
+                }
+            }
+            if (node.m_depth != 0)
+            {
+                pheader.push_back(node.m_value);
+            }
+            std::vector<t_uindex> nodes = tree->get_child_idx(nidx);
+            std::copy(nodes.rbegin(), nodes.rend(), std::front_inserter(dft));
+        }
+        else if (node.m_depth == row_depth)
+        {
+            ridx++;
+            t_uindex r_start = (ridx - start_row) * stride;
+            for (t_uindex hidx = 0; hidx < row_depth; ++hidx)
+            {
+                retval[r_start + hidx].set(pheader[hidx]);
+            }
+            retval[r_start + row_depth - 1].set(node.m_value);
+            t_ptidx r_ptidx = node.m_idx;
+            tree->get_path(r_ptidx, r_path);
+            t_depth r_depth = node.m_depth;
+            for (t_uindex cidx = 0; cidx < end_col - row_depth; ++cidx)
+            {
+                t_index insert_idx
+                    = (ridx - start_row) * stride + row_depth + cidx;
+                const t_tscalvec& c_path = col_paths[cidx];
+                t_index agg_idx = cidx % n_aggs;
+                t_ptidx query_ptidx = INVALID_INDEX;
+                if (c_path.size() == 0)
+                {
+                    query_ptidx = r_ptidx;
+                }
+                else
+                {
+                    if (r_depth + 1 == static_cast<t_depth>(m_trees.size()))
+                    {
+                        query_ptidx = tree->resolve_path(r_ptidx, c_path);
+                    }
+                    else
+                    {
+                        t_ptidx path_ptidx = tree->resolve_path(0, r_path);
+                        if (path_ptidx < 0)
+                        {
+                            query_ptidx = INVALID_INDEX;
+                        }
+                        else
+                        {
+                            query_ptidx
+                                = tree->resolve_path(path_ptidx, c_path);
+                        }
+                    }
+                }
+                if (query_ptidx < 0)
+                {
+                    retval[insert_idx].set(empty);
+                }
+                else
+                {
+                    retval[insert_idx].set(
+                        tree->get_aggregate(query_ptidx, agg_idx));
+                }
+            }
+            r_path.clear();
+        }
+        last_depth = node.m_depth;
+    }
+    return retval;
+}
+
 t_bool
 t_ctx2::has_deltas() const
 {
@@ -1015,10 +1181,10 @@ t_ctx2::unity_get_column_display_name(t_uindex idx) const
     return m_config.unity_get_column_display_name(idx);
 }
 
-t_svec
+std::vector<t_str>
 t_ctx2::unity_get_column_names() const
 {
-    t_svec rv;
+    std::vector<t_str> rv;
 
     for (t_uindex idx = 0, loop_end = unity_get_column_count(); idx < loop_end;
          ++idx)
@@ -1028,10 +1194,10 @@ t_ctx2::unity_get_column_names() const
     return rv;
 }
 
-t_svec
+std::vector<t_str>
 t_ctx2::unity_get_column_display_names() const
 {
-    t_svec rv;
+    std::vector<t_str> rv;
 
     for (t_uindex idx = 0, loop_end = unity_get_column_count(); idx < loop_end;
          ++idx)
@@ -1046,7 +1212,7 @@ t_ctx2::unity_get_column_count() const
 {
     if (m_config.get_totals() != TOTALS_HIDDEN)
         return get_column_count() - 1;
-    t_tvivec leaves;
+    std::vector<t_tvidx> leaves;
     m_ctraversal->get_leaves(leaves);
     return leaves.size() * m_config.get_num_aggregates();
 }

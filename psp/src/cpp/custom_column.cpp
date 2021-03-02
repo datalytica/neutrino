@@ -23,9 +23,9 @@ t_custom_column::t_custom_column(const t_custom_column_recipe& ccr)
 {
 }
 
-t_custom_column::t_custom_column(const t_svec& icols, const t_str& ocol,
-    const t_str& expr, const t_svec& where_keys, const t_svec& where_values,
-    const t_str& base_case)
+t_custom_column::t_custom_column(const std::vector<t_str>& icols,
+    const t_str& ocol, const t_str& expr, const std::vector<t_str>& where_keys,
+    const std::vector<t_str>& where_values, const t_str& base_case)
     : m_icols(icols)
     , m_ocol(ocol)
     , m_expr(expr)
@@ -47,7 +47,7 @@ t_custom_column::get_expr() const
     return m_expr;
 }
 
-const t_svec&
+const std::vector<t_str>&
 t_custom_column::get_icols() const
 {
     return m_icols;
@@ -66,13 +66,13 @@ t_custom_column::get_recipe() const
     return rv;
 }
 
-const t_svec&
+const std::vector<t_str>&
 t_custom_column::get_where_keys() const
 {
     return m_where_keys;
 }
 
-const t_svec&
+const std::vector<t_str>&
 t_custom_column::get_where_values() const
 {
     return m_where_values;

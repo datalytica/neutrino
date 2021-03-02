@@ -135,7 +135,7 @@ t_gstate::update_history(const t_table* tbl)
     t_uindex ncols = m_table->num_columns();
     auto stable = m_table.get();
 
-    t_uidxvec col_translation(stable->num_columns());
+    std::vector<t_uindex> col_translation(stable->num_columns());
 
     t_str opname("psp_op");
     t_str pkeyname("psp_pkey");
@@ -219,7 +219,7 @@ t_gstate::update_history(const t_table* tbl)
     }
 
     /* size is not zero */
-    t_uidxvec stableidx_vec(tbl->num_rows());
+    std::vector<t_uindex> stableidx_vec(tbl->num_rows());
 
     for (t_uindex idx = 0, loop_end = tbl->num_rows(); idx < loop_end; ++idx)
     {
@@ -390,7 +390,7 @@ t_gstate::update_history(const t_table* tbl)
 void
 t_gstate::pprint() const
 {
-    t_uidxvec indices(m_mapping.size());
+    std::vector<t_uindex> indices(m_mapping.size());
     t_uindex idx = 0;
     for (t_mapping::const_iterator iter = m_mapping.begin();
          iter != m_mapping.end(); ++iter)
@@ -448,21 +448,21 @@ t_gstate::read_column(
 }
 
 void
-t_gstate::read_column(
-    const t_str& colname, const t_tscalvec& pkeys, t_f64vec& out_data) const
+t_gstate::read_column(const t_str& colname, const t_tscalvec& pkeys,
+    std::vector<t_float64>& out_data) const
 {
     read_column(colname, pkeys, out_data, true);
 }
 
 void
 t_gstate::read_column(const t_str& colname, const t_tscalvec& pkeys,
-    t_f64vec& out_data, bool include_nones) const
+    std::vector<t_float64>& out_data, bool include_nones) const
 {
     t_index num = pkeys.size();
     t_col_csptr col = m_table->get_const_column(colname);
     const t_column* col_ = col.get();
 
-    t_f64vec rval;
+    std::vector<t_float64> rval;
     for (t_index idx = 0; idx < num; ++idx)
     {
         t_mapping::const_iterator iter = m_mapping.find(pkeys[idx]);
@@ -577,9 +577,37 @@ t_gstate::get_pkey_dtype() const
 }
 
 t_table_sptr
-t_gstate::get_pkeyed_table(const t_schema& schema) const
+t_gstate::get_sorted_pkeyed_table() const
 {
-    return t_table_sptr(_get_pkeyed_table(schema));
+    std::map<t_tscalar, t_uindex> ordered(m_mapping.begin(), m_mapping.end());
+    auto sch = m_pkeyed_schema.drop({"psp_op"});
+    auto rv = std::make_shared<t_table>(sch, 0);
+    rv->init();
+    rv->reserve(mapping_size());
+
+    auto pkey_col = rv->get_column("psp_pkey");
+    t_colsptrvec icolumns;
+    t_colsptrvec ocolumns;
+
+    for (const t_str& cname : m_tblschema.m_columns)
+    {
+        ocolumns.push_back(rv->get_column(cname));
+        icolumns.push_back(m_table->get_column(cname));
+    }
+
+    for (auto it = ordered.begin(); it != ordered.end(); ++it)
+    {
+        auto ridx = it->second;
+        pkey_col->push_back(it->first);
+        for (t_uindex cidx = 0, loop_end = m_tblschema.size(); cidx < loop_end;
+             ++cidx)
+        {
+            auto scalar = icolumns[cidx]->get_scalar(ridx);
+            ocolumns[cidx]->push_back(scalar);
+        }
+    }
+    rv->set_size(mapping_size());
+    return rv;
 }
 
 t_table_sptr
@@ -597,30 +625,6 @@ t_gstate::_get_pkeyed_table() const
 }
 
 t_table*
-t_gstate::_get_pkeyed_table(const t_tscalvec& pkeys) const
-{
-    return _get_pkeyed_table(m_pkeyed_schema, pkeys);
-}
-
-t_table*
-t_gstate::_get_pkeyed_table(
-    const t_schema& schema, const t_tscalvec& pkeys) const
-{
-    t_mask mask(size());
-
-    for (const auto& pkey : pkeys)
-    {
-        auto lk = lookup(pkey);
-        if (lk.m_exists)
-        {
-            mask.set(lk.m_idx, true);
-        }
-    }
-
-    return _get_pkeyed_table(schema, mask);
-}
-
-t_table*
 t_gstate::_get_pkeyed_table(const t_schema& schema) const
 {
     auto mask = get_cpp_mask();
@@ -630,9 +634,8 @@ t_gstate::_get_pkeyed_table(const t_schema& schema) const
 t_table*
 t_gstate::_get_pkeyed_table(const t_schema& schema, const t_mask& mask) const
 {
-    static bool const enable_pkeyed_table_mask_fix = true;
     t_uindex o_ncols = schema.m_columns.size();
-    auto sz = enable_pkeyed_table_mask_fix ? mask.count() : mask.size();
+    auto sz = mask.count();
     auto rval = new t_table(schema, sz);
     rval->init();
     rval->set_size(sz);
@@ -665,38 +668,26 @@ t_gstate::_get_pkeyed_table(const t_schema& schema, const t_mask& mask) const
     op_col->valid_raw_fill();
     pkey_col->valid_raw_fill();
 
-    std::vector<std::pair<t_tscalar, t_uindex>> order(
-        enable_pkeyed_table_mask_fix ? sz : m_mapping.size());
-    if (enable_pkeyed_table_mask_fix)
-    {
-        std::vector<t_uindex> mapping;
-        mapping.resize(mask.size());
-        {
-            t_uindex mapped = 0;
-            for (t_uindex idx = 0; idx < mask.size(); ++idx)
-            {
-                mapping[idx] = mapped;
-                if (mask.get(idx))
-                    ++mapped;
-            }
-        }
+    std::vector<std::pair<t_tscalar, t_uindex>> order(sz);
 
-        t_uindex oidx = 0;
-        for (const auto& kv : m_mapping)
+    std::vector<t_uindex> mapping;
+    mapping.resize(mask.size());
+    {
+        t_uindex mapped = 0;
+        for (t_uindex idx = 0; idx < mask.size(); ++idx)
         {
-            if (mask.get(kv.second))
-            {
-                order[oidx] = std::make_pair(kv.first, mapping[kv.second]);
-                ++oidx;
-            }
+            mapping[idx] = mapped;
+            if (mask.get(idx))
+                ++mapped;
         }
     }
-    else // enable_pkeyed_table_mask_fix
+
+    t_uindex oidx = 0;
+    for (const auto& kv : m_mapping)
     {
-        t_uindex oidx = 0;
-        for (const auto& kv : m_mapping)
+        if (mask.get(kv.second))
         {
-            order[oidx] = kv;
+            order[oidx] = std::make_pair(kv.first, mapping[kv.second]);
             ++oidx;
         }
     }
@@ -900,22 +891,6 @@ const t_schema&
 t_gstate::get_port_schema() const
 {
     return m_pkeyed_schema;
-}
-
-t_uidxvec
-t_gstate::get_pkeys_idx(const t_tscalvec& pkeys) const
-{
-    t_uidxvec rv;
-    rv.reserve(pkeys.size());
-
-    for (const auto& p : pkeys)
-    {
-        auto lk = lookup(p);
-        std::cout << "pkey " << p << " exists " << lk.m_exists << std::endl;
-        if (lk.m_exists)
-            rv.push_back(lk.m_idx);
-    }
-    return rv;
 }
 
 } // end namespace perspective

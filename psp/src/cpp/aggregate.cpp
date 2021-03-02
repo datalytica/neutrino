@@ -7,7 +7,6 @@
  *
  */
 
-#include <perspective/first.h>
 #include <perspective/aggregate.h>
 
 namespace perspective

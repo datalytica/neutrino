@@ -50,7 +50,7 @@ struct t_argsort_cmp
 
 template <typename DATA_T>
 inline void
-argsort(const DATA_T* b, t_uidxvec& output)
+argsort(const DATA_T* b, std::vector<t_uindex>& output)
 {
     // Output should be the same size is erange-brange
     for (t_index i = 0, loop_end = output.size(); i != loop_end; ++i)
@@ -89,7 +89,7 @@ partition(const t_column* PSP_RESTRICT data_, t_column* PSP_RESTRICT leaves_,
                 buf[idx] = data_->get_scalar(leaves[bidx + idx]);
             }
 
-            t_uidxvec order(nelems);
+            std::vector<t_uindex> order(nelems);
 
             t_tscalar* buf_addr = &buf[0];
             argsort(buf_addr, order);

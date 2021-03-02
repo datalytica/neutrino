@@ -14,10 +14,11 @@
 #include <perspective/column.h>
 #include <perspective/storage.h>
 #include <perspective/scalar.h>
-#include <perspective/tracing.h>
 #include <perspective/utils.h>
 #include <perspective/logtime.h>
 #include <sstream>
+#include <fstream>
+
 namespace perspective
 {
 
@@ -65,6 +66,37 @@ t_table::t_table(const t_schema& s, t_uindex init_cap)
     PSP_TRACE_SENTINEL();
     LOG_CONSTRUCTOR("t_table");
     set_capacity(init_cap);
+}
+
+// THIS CONSTRUCTOR INITS. Do not use in production.
+t_table::t_table(const t_schema& s, const std::vector<t_tscalvec>& v)
+    : m_name("")
+    , m_dirname("")
+    , m_schema(s)
+    , m_size(0)
+    , m_backing_store(BACKING_STORE_MEMORY)
+    , m_init(false)
+    , m_from_recipe(false)
+{
+    PSP_TRACE_SENTINEL();
+    LOG_CONSTRUCTOR("t_table");
+    auto ncols = s.size();
+    PSP_VERBOSE_ASSERT(
+        std::all_of(v.begin(), v.end(),
+            [ncols](const t_tscalvec& vec) { return vec.size() == ncols; }),
+        "Mismatched row size found");
+    set_capacity(v.size());
+    init();
+    extend(v.size());
+    t_colptrvec cols = get_columns();
+    for (t_uindex cidx = 0; cidx < ncols; ++cidx)
+    {
+        auto col = cols[cidx];
+        for (t_uindex ridx = 0, loop_end = v.size(); ridx < loop_end; ++ridx)
+        {
+            col->set_scalar(ridx, v[ridx][cidx]);
+        }
+    }
 }
 
 t_table::t_table(const t_str& name, const t_str& dirname, const t_schema& s,
@@ -360,14 +392,14 @@ t_table::pprint(t_uindex nrows, std::ostream* os) const
     {
         for (t_uindex cidx = 0; cidx < ncols; ++cidx)
         {
-            (*os) << columns[cidx]->get_scalar(ridx).to_string() << ", ";
+            (*os) << columns[cidx]->get_scalar(ridx).repr() << ", ";
         }
         (*os) << std::endl;
     }
 }
 
 void
-t_table::pprint(const t_uidxvec& vec) const
+t_table::pprint(const std::vector<t_uindex>& vec) const
 {
     PSP_TRACE_SENTINEL();
     PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
@@ -405,7 +437,7 @@ t_table::append(const t_table& other)
     t_colcptrvec src_cols;
     t_colptrvec dst_cols;
 
-    t_sset incoming;
+    std::set<t_str> incoming;
 
     for (const auto& cname : other.m_schema.m_columns)
     {
@@ -473,15 +505,15 @@ t_table::get_recipe() const
     return rval;
 }
 
-t_mask
+t_masksptr
 t_table::filter_cpp(t_filter_op combiner, const t_ftermvec& fterms_) const
 {
     auto self = const_cast<t_table*>(this);
     auto fterms = fterms_;
 
-    t_mask mask(size());
+    auto mask = std::make_shared<t_mask>(size());
     t_uindex fterm_size = fterms.size();
-    t_uidxvec indices(fterm_size);
+    std::vector<t_uindex> indices(fterm_size);
     t_colcptrvec columns(fterm_size);
 
     for (t_uindex idx = 0; idx < fterm_size; ++idx)
@@ -535,7 +567,7 @@ t_table::filter_cpp(t_filter_op combiner, const t_ftermvec& fterms_) const
                     }
                 }
 
-                mask.set(ridx, pass);
+                mask->set(ridx, pass);
             }
         }
         break;
@@ -554,7 +586,7 @@ t_table::filter_cpp(t_filter_op combiner, const t_ftermvec& fterms_) const
                         break;
                     }
                 }
-                mask.set(ridx, pass);
+                mask->set(ridx, pass);
             }
         }
         break;
@@ -594,6 +626,24 @@ t_table::clone_(const t_mask& mask) const
 }
 
 t_table_sptr
+t_table::clone() const
+{
+    PSP_TRACE_SENTINEL();
+    PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
+    t_schema schema = m_schema;
+    auto rval
+        = std::make_shared<t_table>("", "", schema, 5, BACKING_STORE_MEMORY);
+    rval->init();
+
+    for (const auto& cname : schema.m_columns)
+    {
+        rval->set_column(cname, get_const_column(cname)->clone());
+    }
+    rval->set_size(size());
+    return rval;
+}
+
+t_table_sptr
 t_table::clone(const t_mask& mask) const
 {
     PSP_TRACE_SENTINEL();
@@ -620,6 +670,23 @@ t_table::add_column(const t_str& name, t_dtype dtype, t_bool status_enabled)
     m_columns.back()->reserve(
         std::max(size(), std::max(static_cast<t_uindex>(8), m_capacity)));
     m_columns.back()->set_size(size());
+    return m_columns.back().get();
+}
+
+t_column*
+t_table::add_column(const t_str& name, t_dtype dtype, const t_tscalvec& vec)
+{
+    PSP_TRACE_SENTINEL();
+    PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
+    PSP_VERBOSE_ASSERT(!m_from_recipe,
+        "Adding columns to recipe based tables not supported yet.");
+
+    if (m_schema.has_column(name))
+    {
+        return m_columns.at(m_schema.get_colidx(name)).get();
+    }
+    m_schema.add_column(name, dtype);
+    m_columns.push_back(t_column::build(dtype, vec));
     return m_columns.back().get();
 }
 
@@ -680,9 +747,10 @@ t_table::verify() const
     }
 
     auto sz = size();
-
+    PSP_UNUSED(sz);
     for (auto& c : m_columns)
     {
+        PSP_UNUSED(c);
         PSP_VERBOSE_ASSERT(sz == c->size(), "Ragged table encountered");
     }
 }
@@ -695,4 +763,46 @@ t_table::reset()
     init();
 }
 
+t_tscalvec
+t_table::get_scalvec() const
+{
+    auto nrows = size();
+    auto cols = get_const_columns();
+    auto ncols = cols.size();
+    t_tscalvec rv;
+    for (t_uindex idx = 0; idx < nrows; ++idx)
+    {
+        for (t_uindex cidx = 0; cidx < ncols; ++cidx)
+        {
+            rv.push_back(cols[cidx]->get_scalar(idx));
+        }
+    }
+    return rv;
+}
+
+t_col_sptr t_table::operator[](const t_str& name)
+{
+    if (!m_schema.has_column(name))
+    {
+        return t_col_sptr(nullptr);
+    }
+    return m_columns[m_schema.get_colidx(name)];
+}
+
+bool
+operator==(const t_table& lhs, const t_table& rhs)
+{
+    return lhs.get_scalvec() == rhs.get_scalvec();
+}
+
 } // end namespace perspective
+
+namespace std
+{
+std::ostream&
+operator<<(std::ostream& os, const perspective::t_table& t)
+{
+    t.pprint(t.size(), &os);
+    return os;
+}
+} // namespace std

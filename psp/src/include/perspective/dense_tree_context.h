@@ -8,13 +8,11 @@
  */
 
 #pragma once
-#include <perspective/first.h>
-#include <perspective/table.h>
 #include <perspective/aggregate.h>
 #include <perspective/dense_tree.h>
 #include <perspective/aggspec.h>
 #include <perspective/exports.h>
-#include <perspective/filter.h>
+#include <perspective/shared_ptrs.h>
 
 namespace perspective
 {
@@ -52,7 +50,7 @@ private:
     t_aggspecvec m_aggspecs;
     t_table_sptr m_aggregates;
     t_bool m_init;
-    t_sidxmap m_aggspecmap;
+    std::map<t_str, t_index> m_aggspecmap;
 };
 
 } // end namespace perspective

@@ -7,7 +7,6 @@
  *
  */
 
-#include <perspective/first.h>
 #include <perspective/aggspec.h>
 #include <perspective/base.h>
 #include <sstream>
@@ -75,6 +74,13 @@ t_aggspec::t_aggspec(const t_str& aggname, t_aggtype agg, const t_str& dep)
 {
 }
 
+t_aggspec::t_aggspec(t_aggtype agg, const t_str& dep)
+    : m_agg(agg)
+    , m_dependencies(t_depvec{t_dep(dep, DEPTYPE_COLUMN)})
+    , m_kernel(0)
+{
+}
+
 t_aggspec::t_aggspec(const t_str& name, const t_str& disp_name, t_aggtype agg,
     const t_depvec& dependencies)
     : m_name(name)
@@ -110,6 +116,18 @@ t_aggspec::t_aggspec(const t_str& aggname, const t_str& disp_aggname,
 
 {
 }
+
+#ifdef PSP_ENABLE_WASM
+t_aggspec::t_aggspec(const t_str& name, t_aggtype agg,
+    const t_depvec& dependencies, emscripten::val& kernel)
+    : m_name(name)
+    , m_disp_name(name)
+    , m_agg(agg)
+    , m_dependencies(dependencies)
+    , m_kernel(new t_kernel(kernel))
+{
+}
+#endif
 
 t_aggspec::~t_aggspec() {}
 
@@ -284,6 +302,10 @@ t_aggspec::agg_str() const
         {
             return "pct_sum_grand_total";
         }
+        case AGGTYPE_UDF_JS_REDUCE_FLOAT64:
+        {
+            return "js_reduce_float64";
+        }
         default:
         {
             PSP_COMPLAIN_AND_ABORT("Unknown agg type");
@@ -309,16 +331,12 @@ get_simple_accumulator_type(t_dtype coltype)
         case DTYPE_INT32:
         case DTYPE_INT16:
         case DTYPE_INT8:
-        {
-            return DTYPE_INT64;
-        }
-        break;
         case DTYPE_UINT64:
         case DTYPE_UINT32:
         case DTYPE_UINT16:
         case DTYPE_UINT8:
         {
-            return DTYPE_UINT64;
+            return DTYPE_INT64;
         }
         case DTYPE_FLOAT64:
         case DTYPE_FLOAT32:
@@ -364,34 +382,6 @@ t_aggspec::get_agg_two_weight() const
     return m_agg_two_weight;
 }
 
-t_invmode
-t_aggspec::get_inv_mode() const
-{
-    return m_invmode;
-}
-
-t_svec
-t_aggspec::get_input_depnames() const
-{
-    t_svec rval;
-    for (const auto d : m_dependencies)
-    {
-        rval.push_back(d.name());
-    }
-    return rval;
-}
-
-t_svec
-t_aggspec::get_output_depnames() const
-{
-    t_svec rval;
-    for (const auto d : m_dependencies)
-    {
-        rval.push_back(d.name());
-    }
-    return rval;
-}
-
 t_col_name_type_vec
 t_aggspec::get_output_specs(const t_schema& schema) const
 {
@@ -403,6 +393,7 @@ t_aggspec::get_output_specs(const t_schema& schema) const
         case AGGTYPE_PCT_SUM_GRAND_TOTAL:
         case AGGTYPE_MUL:
         case AGGTYPE_SUM_NOT_NULL:
+        case AGGTYPE_UDF_JS_REDUCE_FLOAT64:
         {
             t_dtype coltype = schema.get_dtype(m_dependencies[0].name());
             return mk_col_name_type_vec(

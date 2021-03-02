@@ -24,8 +24,8 @@ namespace perspective
 
 t_ctx1::t_ctx1(const t_schema& schema, const t_config& pivot_config)
     : t_ctxbase<t_ctx1>(schema, pivot_config)
-    , m_depth_set(false)
     , m_depth(0)
+    , m_depth_set(false)
 {
 }
 
@@ -275,8 +275,14 @@ t_ctx1::set_depth(t_depth depth)
     m_depth_set = true;
 }
 
+t_depth
+t_ctx1::get_depth() const
+{
+    return m_depth;
+}
+
 t_tscalvec
-t_ctx1::get_pkeys(const t_uidxpvec& cells) const
+t_ctx1::get_pkeys(const std::vector<t_uidxpair>& cells) const
 {
     PSP_TRACE_SENTINEL();
     PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
@@ -288,7 +294,7 @@ t_ctx1::get_pkeys(const t_uidxpvec& cells) const
     }
 
     t_tscalvec rval;
-    t_ptivec tindices(cells.size());
+    std::vector<t_ptidx> tindices(cells.size());
     for (const auto& c : cells)
     {
         auto ptidx = m_traversal->get_tree_index(c.first);
@@ -300,7 +306,7 @@ t_ctx1::get_pkeys(const t_uidxpvec& cells) const
 }
 
 t_tscalvec
-t_ctx1::get_cell_data(const t_uidxpvec& cells) const
+t_ctx1::get_cell_data(const std::vector<t_uidxpair>& cells) const
 {
     PSP_TRACE_SENTINEL();
     PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
@@ -449,6 +455,84 @@ t_ctx1::get_trees()
     t_streeptr_vec rval(1);
     rval[0] = m_tree.get();
     return rval;
+}
+
+t_uindex
+t_ctx1::get_leaf_count() const
+{
+    PSP_TRACE_SENTINEL();
+    PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
+    return m_tree->get_num_leaves(m_depth + 1);
+}
+
+t_tscalvec
+t_ctx1::get_leaf_data(t_uindex start_row, t_uindex end_row, t_uindex start_col,
+    t_uindex end_col) const
+{
+    PSP_TRACE_SENTINEL();
+    PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
+    t_uindex nrows = end_row - start_row;
+    t_uindex stride = end_col - start_col;
+
+    t_depth depth = m_depth + 1;
+
+    t_tscalvec values((nrows)*stride);
+    t_uindex ridx = 0;
+
+    t_depth last_depth = -1;
+
+    // Iterate by depth
+    std::deque<std::pair<t_tvidx, t_ptidx>> dft;
+    dft.push_front(std::make_pair(0, 0));
+
+    t_uindex naggs = m_config.get_num_aggregates();
+
+    std::vector<t_tscalar> pheader;
+    while (!dft.empty())
+    {
+        auto pair = dft.front();
+        dft.pop_front();
+
+        t_stnode node = m_tree->get_node(pair.second);
+
+        if (node.m_depth < depth)
+        {
+            if (node.m_depth < last_depth && last_depth != t_depth(-1))
+            {
+                for (t_uindex i = 0; i < last_depth - node.m_depth; ++i)
+                {
+                    pheader.pop_back();
+                }
+            }
+
+            if (node.m_depth != 0)
+            {
+                pheader.push_back(node.m_value);
+            }
+
+            std::vector<std::pair<t_tvidx, t_ptidx>> nodes;
+            m_traversal->get_child_indices(pair.first, nodes);
+            std::copy(nodes.rbegin(), nodes.rend(), std::front_inserter(dft));
+        }
+        else if (node.m_depth == depth)
+        {
+            t_uindex r_start = (ridx - start_row) * stride;
+            for (t_uindex hidx = 0; hidx < depth; ++hidx)
+            {
+                values[r_start + hidx].set(pheader[hidx]);
+            }
+            values[r_start + depth - 1].set(node.m_value);
+
+            for (t_uindex aggidx = 0; aggidx < naggs; ++aggidx)
+            {
+                values[r_start + depth + aggidx].set(
+                    m_tree->get_aggregate(node.m_idx, aggidx));
+            }
+            ridx++;
+        }
+        last_depth = node.m_depth;
+    }
+    return values;
 }
 
 t_bool
@@ -605,10 +689,10 @@ t_ctx1::unity_get_column_display_name(t_uindex idx) const
     return m_config.unity_get_column_display_name(idx);
 }
 
-t_svec
+std::vector<t_str>
 t_ctx1::unity_get_column_names() const
 {
-    t_svec rv;
+    std::vector<t_str> rv;
 
     for (t_uindex idx = 0, loop_end = unity_get_column_count(); idx < loop_end;
          ++idx)
@@ -618,10 +702,10 @@ t_ctx1::unity_get_column_names() const
     return rv;
 }
 
-t_svec
+std::vector<t_str>
 t_ctx1::unity_get_column_display_names() const
 {
-    t_svec rv;
+    std::vector<t_str> rv;
 
     for (t_uindex idx = 0, loop_end = unity_get_column_count(); idx < loop_end;
          ++idx)
@@ -664,6 +748,44 @@ t_ctx1::clear_deltas()
 void
 t_ctx1::unity_init_load_step_end()
 {
+}
+
+t_table_sptr
+t_ctx1::get_table() const
+{
+    auto schema = m_tree->get_aggtable()->get_schema();
+    auto pivots = m_config.get_row_pivots();
+    auto tbl = std::make_shared<t_table>(schema, m_tree->size());
+    tbl->init();
+    tbl->extend(m_tree->size());
+
+    t_colptrvec aggcols = tbl->get_columns();
+    auto n_aggs = aggcols.size();
+    t_colptrvec pivcols;
+
+    std::stringstream ss;
+    for (const auto& c : pivots)
+    {
+        pivcols.push_back(tbl->add_column(
+            c.colname(), m_schema.get_dtype(c.colname()), true));
+    }
+
+    auto idx = 0;
+    for (auto nidx : m_tree->dfs())
+    {
+        auto depth = m_tree->get_depth(nidx);
+        if (depth > 0)
+        {
+            pivcols[depth - 1]->set_scalar(idx, m_tree->get_value(nidx));
+        }
+        for (t_uindex aggnum = 0; aggnum < n_aggs; ++aggnum)
+        {
+            auto aggscalar = m_tree->get_aggregate(nidx, aggnum);
+            aggcols[aggnum]->set_scalar(idx, aggscalar);
+        }
+        ++idx;
+    }
+    return tbl;
 }
 
 } // end namespace perspective

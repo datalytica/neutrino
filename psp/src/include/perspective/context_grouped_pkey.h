@@ -8,14 +8,11 @@
  */
 
 #pragma once
-#include <perspective/first.h>
 #include <perspective/exports.h>
 #include <perspective/context_base.h>
-#include <perspective/traversal.h>
-#include <perspective/sparse_tree.h>
-#include <perspective/table.h>
 #include <perspective/path.h>
-#include <perspective/sym_table.h>
+#include <perspective/traversal_nodes.h>
+#include <perspective/sort_specification.h>
 
 namespace perspective
 {
@@ -40,7 +37,8 @@ public:
     void set_expansion_state(const t_pathvec& paths);
     t_tscalar get_tree_value(t_ptidx idx) const;
     t_stree* _get_tree();
-    t_ftnvec get_flattened_tree(t_tvidx idx, t_depth stop_depth);
+    std::vector<t_ftreenode> get_flattened_tree(
+        t_tvidx idx, t_depth stop_depth);
     t_trav_csptr get_traversal() const;
 
     void set_depth(t_depth depth);
@@ -51,8 +49,9 @@ public:
 
     // aggregates should be presized to be same size
     // as agg_indices
-    void get_aggregates_for_sorting(t_uindex nidx, const t_idxvec& agg_indices,
-        t_tscalvec& aggregates, t_ctx2*) const;
+    void get_aggregates_for_sorting(t_uindex nidx,
+        const std::vector<t_index>& agg_indices, t_tscalvec& aggregates,
+        void*) const;
 
     using t_ctxbase<t_ctx_grouped_pkey>::get_data;
 
@@ -62,7 +61,7 @@ private:
     t_trav_sptr m_traversal;
     t_stree_sptr m_tree;
     t_sortsvec m_sortby;
-    t_symtable m_symtable;
+    t_symtable_sptr m_symtable;
     t_bool m_has_label;
     t_depth m_depth;
     t_bool m_depth_set;

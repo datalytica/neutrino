@@ -47,27 +47,24 @@ public:
 
     void read_column(const t_str& colname, const t_tscalvec& pkeys,
         t_tscalvec& out_data) const;
-
     void read_column(const t_str& colname, const t_tscalvec& pkeys,
-        t_f64vec& out_data) const;
-
+        std::vector<t_float64>& out_data) const;
     void read_column(const t_str& colname, const t_tscalvec& pkeys,
-        t_f64vec& out_data, bool include_nones) const;
+        std::vector<t_float64>& out_data, bool include_nones) const;
 
     t_table_sptr get_table();
     t_table_csptr get_table() const;
 
-    t_table_sptr get_pkeyed_table(const t_schema& schema) const;
     t_table* _get_pkeyed_table(const t_schema& schema) const;
     t_table* _get_pkeyed_table(
         const t_schema& schema, const t_mask& mask) const;
 
     t_table_sptr get_pkeyed_table() const;
 
+    // Only for tests
+    t_table_sptr get_sorted_pkeyed_table() const;
+
     t_table* _get_pkeyed_table() const;
-    t_table* _get_pkeyed_table(const t_tscalvec& pkeys) const;
-    t_table* _get_pkeyed_table(
-        const t_schema& schema, const t_tscalvec& pkeys) const;
 
     void pprint() const;
 
@@ -75,9 +72,6 @@ public:
     t_tscalvec get_row(t_tscalar pkey) const;
 
     t_bool is_unique(
-        const t_tscalvec& pkeys, const t_str& colname, t_tscalar& value) const;
-
-    t_bool apply(
         const t_tscalvec& pkeys, const t_str& colname, t_tscalar& value) const;
 
     t_bool apply(const t_tscalvec& pkeys, const t_str& colname,
@@ -102,7 +96,6 @@ public:
     void reset();
 
     const t_schema& get_port_schema() const;
-    t_uidxvec get_pkeys_idx(const t_tscalvec& pkeys) const;
 
 protected:
     t_dtype get_pkey_dtype() const;

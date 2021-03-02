@@ -28,7 +28,6 @@
 
 #define __ALWAYS_INLINE__ __forceinline
 
-// TODO: Resolve collision on NOINLINE and NORETURN with fxalib
 #ifndef NOINLINE
 #define NOINLINE __declspec(noinline)
 #endif

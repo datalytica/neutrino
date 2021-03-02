@@ -129,9 +129,6 @@ public:
     void reserve(t_uindex capacity);
     void shrink(t_uindex capacity);
     void copy(t_lstore& out);
-    void load(const t_str& fname);
-    void save(const t_str& fname);
-    void warmup();
 
     t_uindex size() const;
     t_uindex capacity() const;
@@ -200,6 +197,18 @@ public:
     void pprint() const;
 
     t_lstore_sptr clone() const;
+
+    t_bool
+    get_init() const
+    {
+        return m_init;
+    }
+
+    t_bool
+    empty() const
+    {
+        return size() == 0;
+    }
 
 protected:
     void copy_helper_(const t_lstore& other);

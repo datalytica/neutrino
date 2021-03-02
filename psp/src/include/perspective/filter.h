@@ -8,14 +8,11 @@
  */
 
 #pragma once
-#include <perspective/first.h>
 #include <perspective/base.h>
-#include <perspective/raw_types.h>
 #include <perspective/comparators.h>
-#include <perspective/mask.h>
+#include <perspective/shared_ptrs.h>
 #include <perspective/scalar.h>
 #include <perspective/exports.h>
-#include <boost/scoped_ptr.hpp>
 #include <functional>
 #include <set>
 
@@ -217,16 +214,16 @@ class PERSPECTIVE_EXPORT t_filter
 {
 public:
     t_filter();
-    t_filter(const t_svec& columns);
+    t_filter(const std::vector<t_str>& columns);
 
-    t_filter(const t_svec& columns, t_uindex bidx, t_uindex eidx);
+    t_filter(const std::vector<t_str>& columns, t_uindex bidx, t_uindex eidx);
 
-    t_filter(const t_svec& columns, t_uindex mask_size);
+    t_filter(const std::vector<t_str>& columns, t_uindex mask_size);
     t_filter(const t_mask& mask);
 
     t_uindex num_cols() const;
     bool has_filter() const;
-    const t_svec& columns() const;
+    const std::vector<t_str>& columns() const;
     t_select_mode mode() const;
     t_uindex bidx() const;
     t_uindex eidx() const;
@@ -238,7 +235,7 @@ private:
     t_select_mode m_mode;
     t_uindex m_bidx;
     t_uindex m_eidx;
-    t_svec m_columns;
+    std::vector<t_str> m_columns;
     t_masksptr m_mask;
 };
 

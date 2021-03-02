@@ -125,13 +125,14 @@ t_filter::t_filter()
 {
 }
 
-t_filter::t_filter(const t_svec& columns)
+t_filter::t_filter(const std::vector<t_str>& columns)
     : m_mode(SELECT_MODE_ALL)
     , m_columns(columns)
 {
 }
 
-t_filter::t_filter(const t_svec& columns, t_uindex bidx, t_uindex eidx)
+t_filter::t_filter(
+    const std::vector<t_str>& columns, t_uindex bidx, t_uindex eidx)
     : m_mode(SELECT_MODE_RANGE)
     , m_bidx(bidx)
     , m_eidx(eidx)
@@ -139,7 +140,7 @@ t_filter::t_filter(const t_svec& columns, t_uindex bidx, t_uindex eidx)
 {
 }
 
-t_filter::t_filter(const t_svec& columns, t_uindex mask_size)
+t_filter::t_filter(const std::vector<t_str>& columns, t_uindex mask_size)
     : m_mode(SELECT_MODE_MASK)
     , m_columns(columns)
     , m_mask(std::make_shared<t_mask>(mask_size))
@@ -158,7 +159,7 @@ t_filter::has_filter() const
     return m_mode != SELECT_MODE_ALL;
 }
 
-const t_svec&
+const std::vector<t_str>&
 t_filter::columns() const
 {
     return m_columns;

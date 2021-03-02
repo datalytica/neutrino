@@ -8,10 +8,7 @@
  */
 
 #pragma once
-#include <perspective/first.h>
 #include <perspective/base.h>
-#include <map>
-#include <vector>
 
 namespace perspective
 {
@@ -39,6 +36,4 @@ struct t_ctx_handle
     void* m_ctx;
 };
 
-typedef std::vector<t_ctx_handle> t_sctxhvec;
-typedef std::map<t_str, t_ctx_handle> t_sctxhmap;
 } // end namespace perspective

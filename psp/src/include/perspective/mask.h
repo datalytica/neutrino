@@ -46,7 +46,6 @@ public:
     t_uindex find_first() const;
     t_uindex find_next(t_uindex pos) const;
     static const t_uindex m_npos = boost::dynamic_bitset<>::npos;
-    ;
     t_uindex size() const;
     void pprint() const;
 

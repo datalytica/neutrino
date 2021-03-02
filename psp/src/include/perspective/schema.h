@@ -12,15 +12,18 @@
 #include <perspective/raw_types.h>
 #include <perspective/base.h>
 #include <perspective/exports.h>
+#include <vector>
 #include <map>
+#include <set>
+
 namespace perspective
 {
 
 struct PERSPECTIVE_EXPORT t_schema_recipe
 {
     t_schema_recipe();
-    t_svec m_columns;
-    t_dtypevec m_types;
+    std::vector<t_str> m_columns;
+    std::vector<t_dtype> m_types;
 };
 
 typedef std::vector<t_schema_recipe> t_schema_recipevec;
@@ -32,7 +35,8 @@ struct PERSPECTIVE_EXPORT t_schema
 
     t_schema();
     t_schema(const t_schema_recipe& recipe);
-    t_schema(const t_svec& columns, const t_dtypevec& types);
+    t_schema(
+        const std::vector<t_str>& columns, const std::vector<t_dtype>& types);
     t_uindex get_num_columns() const;
     t_uindex size() const;
 
@@ -46,16 +50,16 @@ struct PERSPECTIVE_EXPORT t_schema
     void add_column(const t_str& colname, t_dtype dtype);
     t_schema_recipe get_recipe() const;
     t_bool has_column(const t_str& cname) const;
-    const t_svec& columns() const;
-    const t_dtypevec types() const;
-    t_table_static_ctx get_table_context() const;
+    const std::vector<t_str>& columns() const;
+    const std::vector<t_dtype> types() const;
     t_str str() const;
-
-    t_svec m_columns;
-    t_dtypevec m_types;
+    t_schema drop(const std::set<t_str>& columns) const;
+    t_schema operator+(const t_schema& o) const;
+    std::vector<t_str> m_columns;
+    std::vector<t_dtype> m_types;
     t_suidxmap m_colidx_map;
     t_sdtmap m_coldt_map;
-    t_boolvec m_status_enabled;
+    std::vector<t_bool> m_status_enabled;
     t_bool m_is_pkey;
     t_uindex m_pkeyidx;
     t_uindex m_opidx;

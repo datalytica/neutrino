@@ -8,7 +8,6 @@
  */
 
 #pragma once
-#include <perspective/first.h>
 #include <perspective/config.h>
 #include <perspective/table.h>
 #include <perspective/mask.h>
@@ -16,7 +15,7 @@
 namespace perspective
 {
 
-inline t_mask
+inline t_masksptr
 filter_table_for_config(const t_table& tbl, const t_config& config)
 {
 
@@ -32,7 +31,7 @@ filter_table_for_config(const t_table& tbl, const t_config& config)
         }
     }
 
-    return t_mask(tbl.size());
+    return std::make_shared<t_mask>(tbl.size());
 }
 
 } // end namespace perspective

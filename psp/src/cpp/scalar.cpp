@@ -39,12 +39,6 @@ t_tscalar::is_str() const
 }
 
 bool
-t_tscalar::is_of_type(t_uchar t) const
-{
-    return m_type == t;
-}
-
-bool
 t_tscalar::operator==(const t_tscalar& rhs) const
 {
     if (m_type != rhs.m_type || m_status != rhs.m_status)
@@ -176,7 +170,7 @@ t_tscalar::canonical(t_dtype dtype)
         break;
         case DTYPE_BOOL:
         {
-            rval.set(t_bool(0));
+            rval.set(false);
         }
         break;
         case DTYPE_NONE:
@@ -360,26 +354,22 @@ t_tscalar::abs() const
     {
         case DTYPE_INT64:
         {
-            t_int64 v = std::abs(to_double());
-            rval.set(v);
+            rval.set(static_cast<t_int64>(std::abs(to_double())));
         }
         break;
         case DTYPE_INT32:
         {
-            t_int32 v = std::abs(to_double());
-            rval.set(v);
+            rval.set(static_cast<t_int32>(std::abs(to_double())));
         }
         break;
         case DTYPE_INT16:
         {
-            t_int16 v = std::abs(to_double());
-            rval.set(v);
+            rval.set(static_cast<t_int16>(std::abs(to_double())));
         }
         break;
         case DTYPE_INT8:
         {
-            t_int8 v = std::abs(to_double());
-            rval.set(v);
+            rval.set(static_cast<t_int8>(std::abs(to_double())));
         }
         break;
         case DTYPE_UINT64:
@@ -687,8 +677,8 @@ t_str
 t_tscalar::repr() const
 {
     std::stringstream ss;
-    ss << "t_tscalar< " << get_dtype_descr(static_cast<t_dtype>(m_type)) << ", "
-       << to_string() << " status: " << m_status << " >";
+    ss << get_dtype_descr(static_cast<t_dtype>(m_type)) << ":"
+       << get_status_descr(m_status) << ":" << to_string();
     return ss.str();
 }
 
@@ -807,10 +797,13 @@ t_tscalar::operator bool() const
 t_str
 t_tscalar::to_string(t_bool for_expr) const
 {
-    if (m_status != STATUS_VALID)
-        return t_str("null");
-
     std::stringstream ss;
+    if (m_status != STATUS_VALID)
+    {
+        ss << m_data.m_uint64;
+        return t_str(ss.str());
+    }
+
     switch (m_type)
     {
         case DTYPE_NONE:
@@ -1145,12 +1138,12 @@ t_tscalar::to_int64() const
         break;
         case DTYPE_FLOAT64:
         {
-            return get<t_float64>();
+            return static_cast<t_int64>(get<t_float64>());
         }
         break;
         case DTYPE_FLOAT32:
         {
-            return get<t_float32>();
+            return static_cast<t_int64>(get<t_float32>());
         }
         break;
         case DTYPE_DATE:
@@ -1585,8 +1578,7 @@ t_tscalar::coerce_numeric<t_bool>() const
         rv.set(false);
         return rv;
     }
-    t_bool v = static_cast<t_bool>(m_data.m_uint64);
-    rv.set(v);
+    rv.set(static_cast<t_bool>(m_data.m_uint64));
     return rv;
 }
 
@@ -1597,7 +1589,7 @@ namespace std
 std::ostream&
 operator<<(std::ostream& os, const perspective::t_tscalar& t)
 {
-    os << repr(t);
+    os << t.repr();
     return os;
 }
 

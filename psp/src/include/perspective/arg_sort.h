@@ -8,7 +8,6 @@
  */
 
 #pragma once
-#include <perspective/first.h>
 #include <perspective/base.h>
 #include <perspective/exports.h>
 #include <perspective/scalar.h>
@@ -18,7 +17,8 @@ namespace perspective
 
 struct t_multisorter;
 
-PERSPECTIVE_EXPORT void argsort(t_idxvec& output, const t_multisorter& sorter);
+PERSPECTIVE_EXPORT void argsort(
+    std::vector<t_index>& output, const t_multisorter& sorter);
 
 struct PERSPECTIVE_EXPORT t_argsort_comparator
 {
@@ -29,8 +29,5 @@ struct PERSPECTIVE_EXPORT t_argsort_comparator
     const t_tscalvec& m_v;
     t_sorttype m_sort_type;
 };
-
-PERSPECTIVE_EXPORT void simple_argsort(
-    t_tscalvec& v, t_idxvec& output, const t_sorttype& sort_type);
 
 } // namespace perspective

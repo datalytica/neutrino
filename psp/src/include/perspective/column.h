@@ -14,9 +14,8 @@
 #include <perspective/exports.h>
 #include <perspective/scalar.h>
 #include <perspective/histogram.h>
-#include <perspective/mask.h>
 #include <perspective/compat.h>
-#include <perspective/vocab.h>
+#include <perspective/shared_ptrs.h>
 #include <functional>
 #include <limits>
 #include <cmath>
@@ -56,8 +55,6 @@ struct t_colstr_sort
     const char* m_str;
 };
 
-typedef std::shared_ptr<t_vocab> t_vocab_sptr;
-
 class t_column;
 
 typedef std::shared_ptr<t_column> t_col_sptr;
@@ -74,23 +71,27 @@ typedef std::shared_ptr<t_column> t_col_sptr;
 #define COLUMN_CHECK_STRCOL()
 #endif
 
+class t_column;
+typedef std::shared_ptr<t_column> t_col_sptr;
+typedef std::shared_ptr<const t_column> t_col_csptr;
+
 class PERSPECTIVE_EXPORT t_column
 {
+    PSP_NON_COPYABLE(t_column);
 public:
 #ifdef PSP_DBG_MALLOC
     PSP_NEW_DELETE(t_column)
 #endif
     t_column();
     t_column(const t_column_recipe& recipe);
+    t_column(t_dtype dtype, t_bool missing_enabled, t_uindex row_capacity);
     t_column(t_dtype dtype, t_bool missing_enabled, const t_lstore_recipe& a);
     t_column(t_dtype dtype, t_bool missing_enabled, const t_lstore_recipe& a,
         t_uindex row_capacity);
+    static t_col_sptr build(t_dtype dtype, const t_tscalvec& vec);
     ~t_column();
 
     void column_copy_helper(const t_column& other);
-
-    t_column(const t_column& c);
-    t_column& operator=(const t_column&);
 
     void init();
 
@@ -180,16 +181,16 @@ public:
 
     void pprint() const;
 
-    template <typename DATA_T>
-    void set_nth_body(t_uindex idx, DATA_T elem, t_status status);
+    void set_nth_body(t_uindex idx, const char* elem, t_status status);
 
     t_column_recipe get_recipe() const;
 
     // vocabulary must not contain empty string
     // indices should be > 0
     // scalars will be implicitly understood to be of dtype str
-    template <typename VOCAB_T>
-    void set_vocabulary(const VOCAB_T& vocab, size_t total_size = 0);
+    void set_vocabulary(
+        const std::vector<std::pair<t_tscalar, t_uindex>>& vocab,
+        size_t total_size = 0);
 
     void copy_vocabulary(const t_column* other);
 
@@ -205,10 +206,11 @@ public:
     void valid_raw_fill();
 
     template <typename DATA_T>
-    void copy_helper(
-        const t_column* other, const t_uidxvec& indices, t_uindex offset);
+    void copy_helper(const t_column* other,
+        const std::vector<t_uindex>& indices, t_uindex offset);
 
-    void copy(const t_column* other, const t_uidxvec& indices, t_uindex offset);
+    void copy(const t_column* other, const std::vector<t_uindex>& indices,
+        t_uindex offset);
 
     void clear(t_uindex idx);
     void clear(t_uindex idx, t_status status);
@@ -248,8 +250,6 @@ private:
     t_uint32 m_elemsize;
 };
 
-typedef std::shared_ptr<t_column> t_col_sptr;
-typedef std::shared_ptr<const t_column> t_col_csptr;
 typedef std::vector<t_col_sptr> t_colsptrvec;
 typedef std::vector<t_col_csptr> t_colcsptrvec;
 typedef std::vector<t_col_sptr> t_colsptrvec;
@@ -398,45 +398,19 @@ t_column::fill(VEC_T& vec, const t_uindex* bidx, const t_uindex* eidx) const
 
 template <typename DATA_T>
 void
-t_column::set_nth_body(t_uindex idx, DATA_T elem, t_status status)
-{
-    COLUMN_CHECK_ACCESS(idx);
-    PSP_VERBOSE_ASSERT(m_dtype == DTYPE_STR, "Setting non string column");
-    t_uindex interned = m_vocab->get_interned(elem);
-    m_data->set_nth<t_uindex>(idx, interned);
-
-    if (is_status_enabled())
-    {
-        m_status->set_nth<t_status>(idx, status);
-    }
-}
-
-template <typename DATA_T>
-void
 t_column::raw_fill(DATA_T v)
 {
     m_data->raw_fill(v);
 }
 
-template <typename VOCAB_T>
-void
-t_column::set_vocabulary(const VOCAB_T& vocab, size_t total_size)
-{
-    if (total_size)
-        m_vocab->reserve(total_size, vocab.size() + 1);
-
-    for (const auto& kv : vocab)
-        m_vocab->get_interned(kv.first.get_char_ptr());
-}
-
 template <>
-void t_column::copy_helper<const char>(
-    const t_column* other, const t_uidxvec& indices, t_uindex offset);
+void t_column::copy_helper<const char>(const t_column* other,
+    const std::vector<t_uindex>& indices, t_uindex offset);
 
 template <typename DATA_T>
 void
-t_column::copy_helper(
-    const t_column* other, const t_uidxvec& indices, t_uindex offset)
+t_column::copy_helper(const t_column* other,
+    const std::vector<t_uindex>& indices, t_uindex offset)
 {
     t_uindex eidx
         = std::min(other->size(), static_cast<t_uindex>(indices.size()));

@@ -13,6 +13,7 @@
 #include <perspective/base.h>
 #include <perspective/raw_types.h>
 #include <perspective/exports.h>
+#include <vector>
 
 namespace perspective
 {

@@ -19,6 +19,7 @@
 #include <perspective/traversal.h>
 #include <perspective/env_vars.h>
 #include <perspective/filter_utils.h>
+#include <perspective/sym_table.h>
 #include <queue>
 #include <tuple>
 #include <unordered_set>
@@ -27,8 +28,8 @@ namespace perspective
 {
 
 t_ctx_grouped_pkey::t_ctx_grouped_pkey()
-    : m_depth_set(false)
-    , m_depth(0)
+    : m_depth(0)
+    , m_depth_set(false)
 {
 }
 
@@ -44,6 +45,7 @@ t_ctx_grouped_pkey::init()
     m_traversal = std::shared_ptr<t_traversal>(
         new t_traversal(m_tree, m_config.handle_nan_sort()));
     m_minmax = t_minmaxvec(m_config.get_num_aggregates());
+    m_symtable = std::make_shared<t_symtable>();
     m_init = true;
 }
 
@@ -161,9 +163,8 @@ t_ctx_grouped_pkey::get_data(t_tvidx start_row, t_tvidx end_row,
         if (m_has_label && ridx > 0)
         {
             // Get pkey
-            auto iters = m_tree->get_pkeys_for_leaf(nidx);
-            tree_value.set(
-                m_state->get_value(iters.first->m_pkey, grouping_label_col));
+            auto pk = m_tree->get_pkey_for_leaf(nidx);
+            tree_value.set(m_state->get_value(pk, grouping_label_col));
         }
 
         tmpvalues[(ridx - ext.m_srow) * ncols] = tree_value;
@@ -285,7 +286,7 @@ t_ctx_grouped_pkey::get_tree_value(t_ptidx nidx) const
     return m_tree->get_value(nidx);
 }
 
-t_ftnvec
+std::vector<t_ftreenode>
 t_ctx_grouped_pkey::get_flattened_tree(t_tvidx idx, t_depth stop_depth)
 {
     PSP_TRACE_SENTINEL();
@@ -332,7 +333,7 @@ t_ctx_grouped_pkey::set_depth(t_depth depth)
 }
 
 t_tscalvec
-t_ctx_grouped_pkey::get_pkeys(const t_uidxpvec& cells) const
+t_ctx_grouped_pkey::get_pkeys(const std::vector<t_uidxpair>& cells) const
 {
     PSP_TRACE_SENTINEL();
     PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
@@ -356,10 +357,10 @@ t_ctx_grouped_pkey::get_pkeys(const t_uidxpvec& cells) const
 
         if (seen.find(ptidx) == seen.end())
         {
-            auto iters = m_tree->get_pkeys_for_leaf(ptidx);
-            for (auto iter = iters.first; iter != iters.second; ++iter)
+            auto keys = m_tree->get_pkeys_for_leaf(ptidx);
+            for (const auto& k : keys)
             {
-                rval.push_back(iter->m_pkey);
+                rval.push_back(k);
             }
             seen.insert(ptidx);
         }
@@ -371,10 +372,10 @@ t_ctx_grouped_pkey::get_pkeys(const t_uidxpvec& cells) const
             if (seen.find(d) != seen.end())
                 continue;
 
-            auto iters = m_tree->get_pkeys_for_leaf(d);
-            for (auto iter = iters.first; iter != iters.second; ++iter)
+            auto keys = m_tree->get_pkeys_for_leaf(d);
+            for (const auto& k : keys)
             {
-                rval.push_back(iter->m_pkey);
+                rval.push_back(k);
             }
             seen.insert(d);
         }
@@ -383,7 +384,7 @@ t_ctx_grouped_pkey::get_pkeys(const t_uidxpvec& cells) const
 }
 
 t_tscalvec
-t_ctx_grouped_pkey::get_cell_data(const t_uidxpvec& cells) const
+t_ctx_grouped_pkey::get_cell_data(const std::vector<t_uidxpair>& cells) const
 {
     PSP_TRACE_SENTINEL();
     PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
@@ -559,7 +560,7 @@ t_ctx_grouped_pkey::rebuild()
     if (m_config.has_filters())
     {
         auto mask = filter_table_for_config(*tbl, m_config);
-        tbl = tbl->clone(mask);
+        tbl = tbl->clone(*mask);
     }
 
     t_str child_col_name = m_config.get_child_pkey_column();
@@ -689,7 +690,7 @@ t_ctx_grouped_pkey::rebuild()
         const t_datum& rec = data[ridx];
         t_uindex pridx = rec.m_is_rchild ? 0 : sortidx_map.at(rec.m_pidx);
 
-        auto sortby_value = m_symtable.get_interned_tscalar(
+        auto sortby_value = m_symtable->get_interned_tscalar(
             sortby_col->get_scalar(rec.m_idx));
 
         t_uindex nidx = ridx + 1;
@@ -697,13 +698,13 @@ t_ctx_grouped_pkey::rebuild()
 
         auto pnode = m_tree->get_node(pidx);
 
-        auto value = m_symtable.get_interned_tscalar(rec.m_child);
+        auto value = m_symtable->get_interned_tscalar(rec.m_child);
 
         t_stnode node(
             nidx, pidx, value, pnode.m_depth + 1, sortby_value, 1, nidx);
 
         m_tree->insert_node(node);
-        m_tree->add_pkey(nidx, m_symtable.get_interned_tscalar(rec.m_pkey));
+        m_tree->add_pkey(nidx, m_symtable->get_interned_tscalar(rec.m_pkey));
 
         auto riter = p_range_map.find(rec.m_child);
 
@@ -727,7 +728,7 @@ t_ctx_grouped_pkey::rebuild()
     auto aggspecs = m_config.get_aggregates();
     t_uindex naggs = aggspecs.size();
 
-    t_uidxvec aggindices(nrows);
+    std::vector<t_uindex> aggindices(nrows);
 
     for (t_uindex idx = 0; idx < nrows; ++idx)
     {
@@ -788,7 +789,8 @@ t_ctx_grouped_pkey::notify(const t_table& flattened)
 // as agg_indices
 void
 t_ctx_grouped_pkey::get_aggregates_for_sorting(t_uindex nidx,
-    const t_idxvec& agg_indices, t_tscalvec& aggregates, t_ctx2*) const
+    const std::vector<t_index>& agg_indices, t_tscalvec& aggregates,
+    void*) const
 {
     for (t_uindex idx = 0, loop_end = agg_indices.size(); idx < loop_end; ++idx)
     {
@@ -868,13 +870,13 @@ t_ctx_grouped_pkey::unity_get_column_display_name(t_uindex idx) const
     return m_config.col_at(idx);
 }
 
-t_svec
+std::vector<t_str>
 t_ctx_grouped_pkey::unity_get_column_names() const
 {
     return m_config.get_column_names();
 }
 
-t_svec
+std::vector<t_str>
 t_ctx_grouped_pkey::unity_get_column_display_names() const
 {
     return m_config.get_column_names();

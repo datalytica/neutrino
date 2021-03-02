@@ -42,7 +42,8 @@ struct PERSPECTIVE_EXPORT t_sortspec
 
 typedef std::vector<t_sortspec> t_sortsvec;
 
-PERSPECTIVE_EXPORT t_sorttvec get_sort_orders(const t_sortsvec& vec);
+PERSPECTIVE_EXPORT std::vector<t_sorttype> get_sort_orders(
+    const t_sortsvec& vec);
 
 } // end namespace perspective
 

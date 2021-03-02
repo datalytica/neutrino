@@ -9,13 +9,11 @@
 
 #pragma once
 
-#include <perspective/first.h>
 #include <perspective/base.h>
 #include <perspective/config.h>
 #include <perspective/schema.h>
 #include <perspective/exports.h>
 #include <perspective/min_max.h>
-#include <perspective/tracing.h>
 #include <perspective/pivot.h>
 #include <perspective/shared_ptrs.h>
 #include <perspective/step_delta.h>
@@ -35,7 +33,7 @@ public:
     }
 
     t_slice
-    get_data(const t_range& rng, const t_fetchvec& fvec) const
+    get_data(const t_range& rng, const std::vector<t_fetch>& fvec) const
     {
         return m_ctx->unity_get_data(rng, fvec);
     }
@@ -52,7 +50,8 @@ public:
     typedef DERIVED_T t_derived;
 
     t_ctxbase();
-
+    static std::shared_ptr<DERIVED_T> build(
+        const t_schema& schema, const t_config& config);
     t_ctxbase(const t_schema& schema, const t_config& config);
 
     void set_name(const t_str& name);
@@ -79,11 +78,12 @@ public:
     }
 
     void unity_populate_slice_row(
-        t_slice& s, const t_fetchvec& fvec, t_uindex idx) const;
+        t_slice& s, const std::vector<t_fetch>& fvec, t_uindex idx) const;
     void unity_populate_slice_column(
-        t_slice& s, const t_fetchvec& fvec, t_uindex idx) const;
+        t_slice& s, const std::vector<t_fetch>& fvec, t_uindex idx) const;
 
-    t_slice unity_get_data(const t_range& rng, const t_fetchvec& fvec) const;
+    t_slice unity_get_data(
+        const t_range& rng, const std::vector<t_fetch>& fvec) const;
 
     t_tscalvec get_data() const;
 
@@ -98,6 +98,15 @@ protected:
     std::vector<t_bool> m_features;
     t_minmaxvec m_minmax;
 };
+
+template <typename DERIVED_T>
+std::shared_ptr<DERIVED_T>
+t_ctxbase<DERIVED_T>::build(const t_schema& schema, const t_config& config)
+{
+    auto rv = std::make_shared<DERIVED_T>(schema, config);
+    rv->init();
+    return rv;
+}
 
 template <typename DERIVED_T>
 t_ctxbase<DERIVED_T>::t_ctxbase()
@@ -209,7 +218,7 @@ t_ctxbase<DERIVED_T>::get_feature_state(t_ctx_feature feature) const
 template <typename DERIVED_T>
 void
 t_ctxbase<DERIVED_T>::unity_populate_slice_column(
-    t_slice& s, const t_fetchvec& fvec, t_uindex idx) const
+    t_slice& s, const std::vector<t_fetch>& fvec, t_uindex idx) const
 {
     for (auto f : fvec)
     {
@@ -251,7 +260,7 @@ t_ctxbase<DERIVED_T>::unity_populate_slice_column(
 template <typename DERIVED_T>
 void
 t_ctxbase<DERIVED_T>::unity_populate_slice_row(
-    t_slice& s, const t_fetchvec& fvec, t_uindex idx) const
+    t_slice& s, const std::vector<t_fetch>& fvec, t_uindex idx) const
 {
     auto cptr = reinterpret_cast<const DERIVED_T*>(this);
     for (auto f : fvec)
@@ -294,7 +303,7 @@ t_ctxbase<DERIVED_T>::unity_populate_slice_row(
 template <typename DERIVED_T>
 t_slice
 t_ctxbase<DERIVED_T>::unity_get_data(
-    const t_range& rng, const t_fetchvec& fvec) const
+    const t_range& rng, const std::vector<t_fetch>& fvec) const
 {
     auto cptr = reinterpret_cast<const DERIVED_T*>(this);
     t_uindex row_count = cptr->get_row_count();
@@ -350,6 +359,15 @@ t_ctxbase<DERIVED_T>::get_data() const
     auto cptr = reinterpret_cast<const DERIVED_T*>(this);
     return cptr->get_data(
         0, cptr->get_row_count(), 0, cptr->get_column_count());
+}
+
+template <typename CTX_T>
+std::shared_ptr<CTX_T>
+build_ctx(const t_schema& schema, const t_config& cfg)
+{
+    auto rv = std::make_shared<CTX_T>(schema, cfg);
+    rv->init();
+    return rv;
 }
 
 } // end namespace perspective

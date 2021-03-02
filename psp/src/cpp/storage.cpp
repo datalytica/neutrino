@@ -23,7 +23,6 @@ SUPPRESS_WARNINGS_VC(4505)
 #include <perspective/raii.h>
 #include <perspective/raw_types.h>
 #include <perspective/storage.h>
-#include <perspective/tracing.h>
 #include <perspective/utils.h>
 #include <perspective/env_vars.h>
 #include <sstream>
@@ -284,6 +283,7 @@ t_lstore::~t_lstore()
 void t_lstore::set_size(t_uindex idx) // in bytes
 {
     PSP_TRACE_SENTINEL();
+    PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
     t_unlock_store tmp(this);
 #ifdef PSP_VERIFY
     PSP_VERBOSE_ASSERT(m_size <= m_capacity, "Setting bad size");
@@ -420,7 +420,7 @@ t_lstore::reserve_impl(t_uindex capacity, bool allow_shrink)
                         std::max(sizeof(void*), size_t(m_alignment)),
                         size_t(capacity));
                     PSP_VERBOSE_ASSERT(result == 0, "posix_memalign failed");
-
+                    PSP_UNUSED(result);
                     memcpy(aligned_base, base, ocapacity);
                     free(base);
                     base = aligned_base;
@@ -459,46 +459,12 @@ t_lstore::reserve_impl(t_uindex capacity, bool allow_shrink)
     }
 }
 
-// Assumes store has been initted
-void
-t_lstore::load(const t_str& fname)
-{
-    PSP_TRACE_SENTINEL();
-    PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
-
-    t_rfmapping imap;
-    map_file_read(fname, imap);
-    reserve(imap.m_size);
-    memcpy(m_base, imap.m_base, size_t(imap.m_size));
-    m_size = imap.m_size;
-    PSP_CHECK_CAPACITY();
-}
-
-void
-t_lstore::save(const t_str& fname)
-{
-    PSP_TRACE_SENTINEL();
-    PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
-    PSP_VERBOSE_ASSERT(m_init, "Store not inited.");
-
-    t_rfmapping omap;
-    map_file_write(fname, capacity(), omap);
-    memcpy(omap.m_base, m_base, size_t(capacity()));
-}
-
 void
 t_lstore::copy(t_lstore& out)
 {
     PSP_TRACE_SENTINEL();
     PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
     PSP_COMPLAIN_AND_ABORT("copy is unimplemented!");
-}
-
-void
-t_lstore::warmup()
-{
-    PSP_TRACE_SENTINEL();
-    PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
 }
 
 t_uindex
@@ -555,12 +521,14 @@ t_lstore::push_back(const void* ptr, t_uindex len)
 void*
 t_lstore::get_ptr(t_uindex offset)
 {
+    PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
     return static_cast<void*>(static_cast<t_uchar*>(m_base) + offset);
 }
 
 const void*
 t_lstore::get_ptr(t_uindex offset) const
 {
+    PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
     return static_cast<void*>(static_cast<t_uchar*>(m_base) + offset);
 }
 
@@ -655,6 +623,7 @@ t_lstore::fill(const t_lstore& other, const t_mask& mask, t_uindex elem_size)
 void
 t_lstore::pprint() const
 {
+    PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
     std::cout << repr() << std::endl;
     t_uindex nelems = size() / sizeof(t_uint8);
     for (t_uindex idx = 0; idx < size() / nelems; ++idx)
@@ -669,6 +638,7 @@ t_lstore::pprint() const
 t_lstore_sptr
 t_lstore::clone() const
 {
+    PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
     auto recipe = get_recipe();
     t_lstore_sptr rval(new t_lstore(recipe));
     rval->init();

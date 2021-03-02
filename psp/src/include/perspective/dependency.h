@@ -8,11 +8,9 @@
  */
 
 #pragma once
-#include <perspective/first.h>
 #include <perspective/raw_types.h>
 #include <perspective/scalar.h>
 #include <perspective/exports.h>
-#include <vector>
 
 namespace perspective
 {

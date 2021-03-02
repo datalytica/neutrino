@@ -9,7 +9,6 @@
 
 #pragma once
 
-#include <perspective/first.h>
 #include <perspective/raw_types.h>
 
 namespace perspective

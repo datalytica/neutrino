@@ -9,7 +9,6 @@
 
 #pragma once
 
-#include <perspective/first.h>
 #include <perspective/base.h>
 #include <perspective/pivot.h>
 #include <perspective/dense_nodes.h>
@@ -17,9 +16,6 @@
 #include <perspective/shared_ptrs.h>
 #include <perspective/tree_iterator.h>
 #include <perspective/column.h>
-#include <sstream>
-#include <csignal>
-#include <queue>
 
 // Pass filter in and store the filter on the tree
 // as a shared ptr
@@ -36,10 +32,11 @@ public:
     typedef std::vector<t_tnode> t_tnodevec;
     typedef t_table_csptr t_dssptr;
 
-    t_dtree(
-        t_dssptr ds, const t_pivotvec& pivots, const t_sspvec& sortby_columns);
+    t_dtree(t_dssptr ds, const t_pivotvec& pivots,
+        const std::vector<t_sspair>& sortby_columns);
     t_dtree(const t_str& dirname, t_dssptr ds, const t_pivotvec& pivots,
-        t_backing_store backing_store, const t_sspvec& sortby_columns);
+        t_backing_store backing_store,
+        const std::vector<t_sspair>& sortby_columns);
 
     void init();
     t_str repr() const;
@@ -62,28 +59,30 @@ public:
     t_uindex last_level() const;
     t_uidxpair get_span_index(t_ptidx idx) const;
     void pprint(const t_filter& filter) const;
+    void pprint() const;
     const t_column* get_leaf_cptr() const;
 
     t_bfs_iter<t_dtree> bfs() const;
     t_dfs_iter<t_dtree> dfs() const;
     t_ptidx get_parent(t_ptidx idx) const;
     const t_pivotvec& get_pivots() const;
+    void get_child_indices(t_ptidx idx, std::vector<t_ptidx>& out_data) const;
 
 private:
     t_str m_dirname;
     t_uindex m_levels_pivoted;
     t_dssptr m_ds;
-    t_uidxpvec m_levels;
+    std::vector<t_uidxpair> m_levels;
     t_pivotvec m_pivots;
-    t_column m_leaves;
+    t_col_sptr m_leaves;
     t_tnodevec m_nodes;
-    t_colvec m_values;
+    t_colsptrvec m_values;
     t_uindex m_nidx;
     t_backing_store m_backing_store;
     t_bool m_init;
-    t_svec m_sortby_dpthcol;
-    t_sspvec m_sortby_colvec;
-    t_ssmap m_sortby_columns;
+    std::vector<t_str> m_sortby_dpthcol;
+    std::vector<t_sspair> m_sortby_colvec;
+    std::map<t_str, t_str> m_sortby_columns;
     std::vector<t_bool> m_has_sortby;
 };
 

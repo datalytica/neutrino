@@ -7,7 +7,7 @@
  *
  */
 
-#ifdef __linux__
+#if defined(__linux__) || defined(PSP_ENABLE_WASM)
 #include <perspective/first.h>
 #include <perspective/base.h>
 

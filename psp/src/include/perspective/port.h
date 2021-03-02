@@ -24,7 +24,7 @@ enum t_port_mode
 class PERSPECTIVE_EXPORT t_port
 {
 public:
-    t_port(t_port_mode mode, const t_schema& schema);
+    t_port(const t_schema& schema);
     ~t_port();
     void init();
     t_table_sptr get_table();
@@ -40,7 +40,6 @@ public:
     void release_or_clear();
 
 private:
-    t_port_mode m_mode;
     t_schema m_schema;
     t_bool m_init;
     t_table_sptr m_table;

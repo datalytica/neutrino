@@ -25,7 +25,7 @@ namespace perspective
 void
 notify_sparse_tree_common(t_table_sptr strands, t_table_sptr strand_deltas,
     t_stree_sptr tree, t_trav_sptr traversal, t_bool process_traversal,
-    const t_aggspecvec& aggregates, const t_sspvec& tree_sortby,
+    const t_aggspecvec& aggregates, const std::vector<t_sspair>& tree_sortby,
     const t_sortsvec& ctx_sortby, const t_gstate& gstate)
 {
     t_filter fltr;
@@ -78,7 +78,7 @@ notify_sparse_tree_common(t_table_sptr strands, t_table_sptr strand_deltas,
 
     tree->update_aggs_from_static(dctx, gstate);
 
-    t_uidxset visited;
+    std::set<t_uindex> visited;
 
     struct t_leaf_path
     {
@@ -149,7 +149,7 @@ notify_sparse_tree_common(t_table_sptr strands, t_table_sptr strand_deltas,
 void
 notify_sparse_tree(t_stree_sptr tree, t_trav_sptr traversal,
     t_bool process_traversal, const t_aggspecvec& aggregates,
-    const t_sspvec& tree_sortby, const t_sortsvec& ctx_sortby,
+    const std::vector<t_sspair>& tree_sortby, const t_sortsvec& ctx_sortby,
     const t_table& flattened, const t_table& delta, const t_table& prev,
     const t_table& current, const t_table& transitions, const t_table& existed,
     const t_config& config, const t_gstate& gstate)
@@ -167,7 +167,7 @@ notify_sparse_tree(t_stree_sptr tree, t_trav_sptr traversal,
 void
 notify_sparse_tree(t_stree_sptr tree, t_trav_sptr traversal,
     t_bool process_traversal, const t_aggspecvec& aggregates,
-    const t_sspvec& tree_sortby, const t_sortsvec& ctx_sortby,
+    const std::vector<t_sspair>& tree_sortby, const t_sortsvec& ctx_sortby,
     const t_table& flattened, const t_config& config, const t_gstate& gstate)
 {
     auto strand_values
@@ -183,7 +183,7 @@ t_pathvec
 ctx_get_expansion_state(t_stree_csptr tree, t_trav_csptr traversal)
 {
     t_pathvec paths;
-    t_ptivec expanded;
+    std::vector<t_ptidx> expanded;
     traversal->get_expanded(expanded);
 
     for (int i = 0, loop_end = expanded.size(); i < loop_end; i++)
@@ -210,7 +210,7 @@ ctx_get_path(t_stree_csptr tree, t_trav_csptr traversal, t_tvidx idx)
     return rval;
 }
 
-t_ftnvec
+std::vector<t_ftreenode>
 ctx_get_flattened_tree(t_tvidx idx, t_depth stop_depth, t_traversal& trav,
     const t_config& config, const t_sortsvec& sortby)
 {

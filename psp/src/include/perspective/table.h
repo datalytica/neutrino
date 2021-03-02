@@ -10,18 +10,16 @@
 #pragma once
 #include <perspective/first.h>
 #include <perspective/base.h>
-#include <perspective/column.h>
 #include <perspective/schema.h>
 #include <perspective/schema_column.h>
 #include <perspective/exports.h>
-#include <perspective/mask.h>
 #include <perspective/filter.h>
-#include <perspective/compat.h>
+#include <perspective/shared_ptrs.h>
 #ifdef PSP_PARALLEL_FOR
 #include <tbb/parallel_sort.h>
 #include <tbb/tbb.h>
 #endif
-#include <tuple>
+#include <perspective/scalar.h>
 
 namespace perspective
 {
@@ -72,6 +70,8 @@ public:
     PSP_NON_COPYABLE(t_table);
     t_table(const t_table_recipe& recipe);
     t_table(const t_schema& s, t_uindex capacity = DEFAULT_EMPTY_CAPACITY);
+    // Only use in tests, it inits the table unlike other constructors
+    t_table(const t_schema& s, const std::vector<t_tscalvec>& v);
     t_table(const t_str& name, const t_str& dirname, const t_schema& s,
         t_uindex init_cap, t_backing_store backing_store);
     ~t_table();
@@ -108,17 +108,17 @@ public:
     void pprint() const;
     void pprint(t_uindex nrows, std::ostream* os = 0) const;
     void pprint(const t_str& fname) const;
-    void pprint(const t_uidxvec& vec) const;
+    void pprint(const std::vector<t_uindex>& vec) const;
 
     void append(const t_table& other);
 
     void clear();
     void reset();
 
-    t_mask filter_cpp(t_filter_op combiner, const t_ftermvec& fops) const;
+    t_masksptr filter_cpp(t_filter_op combiner, const t_ftermvec& fops) const;
     t_table* clone_(const t_mask& mask) const;
     t_table_sptr clone(const t_mask& mask) const;
-
+    t_table_sptr clone() const;
     t_column* clone_column(const t_str& existing_col, const t_str& new_colname);
 
     t_table_recipe get_recipe() const;
@@ -131,11 +131,16 @@ public:
 
     t_column* add_column(
         const t_str& cname, t_dtype dtype, t_bool status_enabled);
+    t_column* add_column(
+        const t_str& cname, t_dtype dtype, const t_tscalvec& vec);
 
     t_col_sptr make_column(
         const t_str& colname, t_dtype dtype, t_bool status_enabled);
     void verify() const;
     void set_capacity(t_uindex idx);
+    t_tscalvec get_scalvec() const;
+
+    t_col_sptr operator[](const t_str& name);
 
 protected:
     template <typename FLATTENED_T>
@@ -162,6 +167,8 @@ private:
     t_table_recipe m_recipe;
     t_bool m_from_recipe;
 };
+
+bool operator==(const t_table& lhs, const t_table& rhs);
 
 template <typename FLATTENED_T>
 void
@@ -332,7 +339,7 @@ t_table::flatten_helper_1(FLATTENED_T flattened) const
     t_packcomp cmp;
     std::sort(sorted.begin(), sorted.end(), cmp);
 
-    t_idxvec edges;
+    std::vector<t_index> edges;
     edges.push_back(0);
 
     for (t_index idx = 1, loop_end = sorted.size(); idx < loop_end; ++idx)
@@ -531,3 +538,9 @@ typedef std::vector<t_table_sptr> t_tblsvec;
 typedef std::vector<t_table_csptr> t_tblcsvec;
 
 } // end namespace perspective
+
+namespace std
+{
+PERSPECTIVE_EXPORT std::ostream& operator<<(
+    std::ostream& os, const perspective::t_table& t);
+} // namespace std

@@ -93,8 +93,8 @@ PERSPECTIVE_EXPORT t_nancmp nan_compare(
     t_sorttype order, const t_tscalar& a, const t_tscalar& b);
 
 inline PERSPECTIVE_EXPORT t_bool
-cmp_mselem(const t_mselem& a, const t_mselem& b, const t_sorttvec& sort_order,
-    t_bool handle_nans)
+cmp_mselem(const t_mselem& a, const t_mselem& b,
+    const std::vector<t_sorttype>& sort_order, t_bool handle_nans)
 {
     typedef std::pair<t_float64, t_tscalar> dpair;
 
@@ -185,8 +185,8 @@ cmp_mselem(const t_mselem& a, const t_mselem& b, const t_sorttvec& sort_order,
 }
 
 inline PERSPECTIVE_EXPORT t_bool
-cmp_mselem(const t_mselem* a, const t_mselem* b, const t_sorttvec& sort_order,
-    t_bool handle_nans)
+cmp_mselem(const t_mselem* a, const t_mselem* b,
+    const std::vector<t_sorttype>& sort_order, t_bool handle_nans)
 {
     return cmp_mselem(*a, *b, sort_order, handle_nans);
 }
@@ -195,16 +195,16 @@ cmp_mselem(const t_mselem* a, const t_mselem* b, const t_sorttvec& sort_order,
 // into account
 struct PERSPECTIVE_EXPORT t_multisorter
 {
-    t_multisorter(const t_sorttvec& order, t_bool handle_nans);
+    t_multisorter(const std::vector<t_sorttype>& order, t_bool handle_nans);
 
-    t_multisorter(
-        t_mselemvec_csptr elems, const t_sorttvec& order, t_bool handle_nans);
+    t_multisorter(t_mselemvec_csptr elems, const std::vector<t_sorttype>& order,
+        t_bool handle_nans);
 
     bool operator()(const t_mselem& a, const t_mselem& b) const;
 
     bool operator()(t_index a, t_index b) const;
 
-    t_sorttvec m_sort_order;
+    std::vector<t_sorttype> m_sort_order;
     t_mselemvec_csptr m_elems;
     t_bool m_handle_nans;
 };

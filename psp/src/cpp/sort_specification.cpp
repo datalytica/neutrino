@@ -49,13 +49,13 @@ t_sortspec::operator!=(const t_sortspec& s2) const
     return !(*this == s2);
 }
 
-t_sorttvec
+std::vector<t_sorttype>
 get_sort_orders(const t_sortsvec& vec)
 {
     if (vec.empty())
-        return t_sorttvec();
+        return std::vector<t_sorttype>();
     auto num = vec.size();
-    t_sorttvec sort_orders(num);
+    std::vector<t_sorttype> sort_orders(num);
 
     for (t_sortsvec::size_type idx = 0; idx < num; ++idx)
     {
@@ -68,7 +68,7 @@ get_sort_orders(const t_sortsvec& vec)
 
 namespace std
 {
-PERSPECTIVE_EXPORT std::ostream&
+inline std::ostream&
 operator<<(std::ostream& os, const perspective::t_sortspec& t)
 {
     using namespace perspective;

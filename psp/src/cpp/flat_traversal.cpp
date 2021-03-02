@@ -35,7 +35,7 @@ t_ftrav::init()
 }
 
 t_tscalvec
-t_ftrav::get_all_pkeys(const t_uidxpvec& cells) const
+t_ftrav::get_all_pkeys(const std::vector<t_uidxpair>& cells) const
 {
     // assumes the code calling this has already validated
     // cells
@@ -50,7 +50,7 @@ t_ftrav::get_all_pkeys(const t_uidxpvec& cells) const
 }
 
 t_tscalvec
-t_ftrav::get_pkeys(const t_uidxpvec& cells) const
+t_ftrav::get_pkeys(const std::vector<t_uidxpair>& cells) const
 {
     t_tscalset all_pkeys;
 
@@ -216,7 +216,7 @@ t_ftrav::check_size()
 }
 
 bool
-t_ftrav::validate_cells(const t_uidxpvec& cells) const
+t_ftrav::validate_cells(const std::vector<t_uidxpair>& cells) const
 {
     t_index trav_size = size();
 

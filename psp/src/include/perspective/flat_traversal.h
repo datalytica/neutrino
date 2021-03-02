@@ -37,9 +37,9 @@ public:
 
     void init();
 
-    t_tscalvec get_all_pkeys(const t_uidxpvec& cells) const;
+    t_tscalvec get_all_pkeys(const std::vector<t_uidxpair>& cells) const;
 
-    t_tscalvec get_pkeys(const t_uidxpvec& cells) const;
+    t_tscalvec get_pkeys(const std::vector<t_uidxpair>& cells) const;
 
     t_tscalvec get_pkeys() const;
     t_tscalvec get_pkeys(t_tvidx begin_row, t_tvidx end_row) const;
@@ -66,7 +66,7 @@ public:
 
     void check_size();
 
-    bool validate_cells(const t_uidxpvec& cells) const;
+    bool validate_cells(const std::vector<t_uidxpair>& cells) const;
 
     void step_begin();
 

@@ -20,5 +20,6 @@ t_schema_column::t_schema_column(const t_str& tblname, const t_str& name,
     , m_altname(altname)
     , m_dtype(dtype)
 {
+    PSP_UNUSED(m_dtype);
 }
 } // namespace perspective

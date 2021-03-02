@@ -36,6 +36,7 @@ file_size(t_handle h)
     struct stat st;
     t_rcode rcode = fstat(h, &st);
     PSP_VERBOSE_ASSERT(rcode == 0, "Error in stat");
+    PSP_UNUSED(rcode);
     return st.st_size;
 }
 
@@ -44,6 +45,7 @@ close_file(t_handle h)
 {
     t_rcode rcode = close(h);
     PSP_VERBOSE_ASSERT(rcode == 0, "Error closing file.");
+    PSP_UNUSED(rcode);
 }
 
 void
@@ -51,6 +53,7 @@ flush_mapping(void* base, t_uindex len)
 {
     t_rcode rcode = msync(base, len, MS_SYNC);
     PSP_VERBOSE_ASSERT(rcode != -1, "Error in msync");
+    PSP_UNUSED(rcode);
 }
 
 t_rfmapping::~t_rfmapping()
@@ -60,6 +63,7 @@ t_rfmapping::~t_rfmapping()
 
     rcode = close(m_fd);
     PSP_VERBOSE_ASSERT(rcode == 0, "Error closing file.");
+    PSP_UNUSED(rcode);
 }
 
 static void
@@ -79,6 +83,7 @@ map_file_internal_(const t_str& fname, t_fflag fflag, t_fflag fmode,
     {
         t_index rcode = ftruncate(fh.value(), size);
         PSP_VERBOSE_ASSERT(rcode >= 0, "ftruncate failed.");
+	PSP_UNUSED(rcode);
     }
 
     void* ptr = mmap(0, size, mprot, mflag, fh.value(), 0);
@@ -116,6 +121,7 @@ psp_curtime()
     struct timespec t;
     t_int32 rcode = clock_gettime(CLOCK_MONOTONIC, &t);
     PSP_VERBOSE_ASSERT(rcode == 0, "Failure in clock_gettime");
+    PSP_UNUSED(rcode);
     t_int64 ns = t.tv_nsec + t.tv_sec * 1000000000;
     return ns;
 }

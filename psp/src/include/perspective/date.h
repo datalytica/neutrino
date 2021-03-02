@@ -8,15 +8,8 @@
  */
 
 #pragma once
-#include <perspective/first.h>
-#include <perspective/raw_types.h>
 #include <perspective/base.h>
-#include <perspective/utils.h>
 #include <perspective/exports.h>
-#include <boost/functional/hash.hpp>
-#include <sstream>
-#include <string>
-#include <algorithm>
 
 namespace perspective
 {
@@ -89,12 +82,6 @@ private:
 
 t_date from_consecutive_day_idx(t_int32 idx);
 
-inline size_t
-hash_value(const t_date& d)
-{
-    boost::hash<t_uint32> hasher;
-    return hasher(d.m_storage);
-}
 } // end namespace perspective
 
 namespace std

@@ -44,9 +44,9 @@ void set_minmax_enabled(bool enabled_state);
 
 void set_feature_state(t_ctx_feature feature, t_bool state);
 
-t_tscalvec get_pkeys(const t_uidxpvec& cells) const;
+t_tscalvec get_pkeys(const std::vector<t_uidxpair>& cells) const;
 
-t_tscalvec get_cell_data(const t_uidxpvec& cells) const;
+t_tscalvec get_cell_data(const std::vector<t_uidxpair>& cells) const;
 
 t_minmaxvec get_min_max() const;
 
@@ -70,6 +70,8 @@ void pprint() const;
 
 t_dtype get_column_dtype(t_uindex idx) const;
 
+t_table_sptr get_table() const;
+
 // Unity api
 t_tscalvec unity_get_row_data(t_uindex idx) const;
 t_tscalvec unity_get_column_data(t_uindex idx) const;
@@ -77,8 +79,8 @@ t_tscalvec unity_get_row_path(t_uindex idx) const;
 t_tscalvec unity_get_column_path(t_uindex idx) const;
 t_uindex unity_get_row_depth(t_uindex ridx) const;
 t_uindex unity_get_column_depth(t_uindex cidx) const;
-t_svec unity_get_column_names() const;
-t_svec unity_get_column_display_names() const;
+std::vector<t_str> unity_get_column_names() const;
+std::vector<t_str> unity_get_column_display_names() const;
 t_str unity_get_column_name(t_uindex idx) const;
 t_str unity_get_column_display_name(t_uindex idx) const;
 t_uindex unity_get_column_count() const;

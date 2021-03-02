@@ -87,7 +87,7 @@ public:
     t_bool has_python_dep() const;
     void flush();
     void flush(t_uindex gnode_id);
-    t_uidxvec get_gnodes_last_updated();
+    std::vector<t_uindex> get_gnodes_last_updated();
     t_gnode* get_gnode(t_uindex gnode_id);
 
 protected:

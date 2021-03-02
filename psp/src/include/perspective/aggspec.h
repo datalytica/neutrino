@@ -8,12 +8,12 @@
  */
 
 #pragma once
-#include <perspective/first.h>
 #include <perspective/base.h>
 #include <perspective/dependency.h>
 #include <perspective/exports.h>
 #include <perspective/schema.h>
 #include <perspective/schema_column.h>
+#include <perspective/kernel_engine.h>
 #include <vector>
 
 namespace perspective
@@ -31,7 +31,7 @@ typedef std::vector<t_col_name_type> t_col_name_type_vec;
 
 struct PERSPECTIVE_EXPORT t_aggspec_recipe
 {
-    t_aggspec_recipe() {}
+    t_aggspec_recipe() = default;
     t_str m_name;
     t_str m_disp_name;
     t_aggtype m_agg;
@@ -60,7 +60,7 @@ public:
         const t_str& aggname, t_aggtype agg, const t_depvec& dependencies);
 
     t_aggspec(const t_str& aggname, t_aggtype agg, const t_str& dep);
-
+    t_aggspec(t_aggtype agg, const t_str& dep);
     t_aggspec(const t_str& aggname, const t_str& disp_aggname, t_aggtype agg,
         const t_depvec& dependencies);
 
@@ -83,11 +83,6 @@ public:
     t_float64 get_agg_one_weight() const;
     t_float64 get_agg_two_weight() const;
 
-    t_invmode get_inv_mode() const;
-
-    t_svec get_input_depnames() const;
-    t_svec get_output_depnames() const;
-
     t_col_name_type_vec get_output_specs(const t_schema& schema) const;
     t_col_name_type_vec mk_col_name_type_vec(
         const t_str& name, t_dtype dtype) const;
@@ -99,6 +94,14 @@ public:
     t_str get_first_depname() const;
 
     t_aggspec_recipe get_recipe() const;
+
+    t_aggspec(const t_str& aggname, t_aggtype agg, const t_depvec& dependencies,
+        t_kernel& kernel);
+    const t_kernel&
+    get_kernel() const
+    {
+        return *m_kernel;
+    }
 
 private:
     t_str m_name;
@@ -112,7 +115,7 @@ private:
     t_float64 m_agg_one_weight;
     t_float64 m_agg_two_weight;
     t_invmode m_invmode;
-    t_uindex m_kernel;
+    std::shared_ptr<t_kernel> m_kernel;
 };
 
 typedef std::vector<t_aggspec> t_aggspecvec;

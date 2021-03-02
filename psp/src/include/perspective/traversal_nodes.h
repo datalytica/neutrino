@@ -28,9 +28,6 @@ struct PERSPECTIVE_EXPORT t_tvnode
 PERSPECTIVE_EXPORT void fill_travnode(t_tvnode* node, bool expanded,
     t_uindex depth, t_uindex rel_pidx, t_uindex ndesc, t_uindex tnid);
 
-typedef std::vector<t_tvnode> t_tvnvec;
-typedef std::shared_ptr<t_tvnvec> t_sptr_tvnodes;
-
 struct PERSPECTIVE_EXPORT t_ftreenode
 {
     t_ptidx m_idx;
@@ -38,8 +35,6 @@ struct PERSPECTIVE_EXPORT t_ftreenode
     t_index m_nchild;
     t_depth m_depth;
 };
-
-typedef std::vector<t_ftreenode> t_ftnvec;
 
 // m_expanded == 0 indicates CLOSED, > 0 indicates OPEN
 // contexts which are reporting full tree-expansion data directly case
@@ -56,7 +51,5 @@ struct PERSPECTIVE_EXPORT t_vdnode
     t_depth m_depth;
     t_bool m_has_children;
 };
-
-typedef std::vector<t_vdnode> t_vdnvec;
 
 } // end namespace perspective
