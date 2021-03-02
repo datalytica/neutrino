@@ -85,7 +85,8 @@ public:
     t_slice unity_get_data(
         const t_range& rng, const std::vector<t_fetch>& fvec) const;
 
-    t_tscalvec get_data() const;
+    t_tscalvec get_data(t_tvidx start_row, t_tvidx end_row, t_tvidx start_col,
+        t_tvidx end_col) const;
 
 protected:
     t_schema m_schema;
@@ -352,14 +353,14 @@ t_ctxbase<DERIVED_T>::unity_get_data(
     return rv;
 }
 
-template <typename DERIVED_T>
+/*template <typename DERIVED_T>
 t_tscalvec
 t_ctxbase<DERIVED_T>::get_data() const
 {
     auto cptr = reinterpret_cast<const DERIVED_T*>(this);
     return cptr->get_data(
         0, cptr->get_row_count(), 0, cptr->get_column_count());
-}
+}*/
 
 template <typename CTX_T>
 std::shared_ptr<CTX_T>

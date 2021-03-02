@@ -1,0 +1,6 @@
+Module.preRun = [];
+Module.preRun.push(function() {
+  if (Module.ENV) {
+    Object.assign(ENV, Module.ENV);
+  }
+});
