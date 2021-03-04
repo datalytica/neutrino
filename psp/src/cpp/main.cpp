@@ -69,6 +69,20 @@ _get_sort(val j_sortby)
     return svec;
 }
 
+void
+_configure_sort_map(val j_sortmap, t_config& config) {
+    std::vector<t_str> sort;
+    std::vector<t_str> sort_by;
+
+    val j_keys = val::global("Object").call<val>("keys", j_sortmap);
+    std::vector<t_str> keys = vecFromJSArray<t_str>(j_keys);
+    for (auto idx = 0; idx < keys.size(); ++idx) {
+        sort.push_back(keys[idx]);
+        sort_by.push_back(j_sortmap[keys[idx]].as<t_str>());
+    }
+    config.setup(std::vector<t_str>{}, sort, sort_by);
+}
+
 /**
  *
  *
@@ -831,7 +845,7 @@ make_context_zero(t_schema schema, t_filter_op combiner, val j_filters,
  */
 t_ctx1_sptr
 make_context_one(t_schema schema, val j_pivots, t_filter_op combiner,
-    val j_filters, val j_aggs, val j_sortby)
+    val j_filters, val j_aggs, val j_sortby, val j_sortmap)
 {
     auto fvec = _get_fterms(schema, j_filters);
     auto aggspecs = _get_aggspecs(j_aggs);
@@ -839,6 +853,7 @@ make_context_one(t_schema schema, val j_pivots, t_filter_op combiner,
     auto svec = _get_sort(j_sortby);
 
     auto cfg = t_config(pivots, aggspecs, combiner, fvec);
+    _configure_sort_map(j_sortmap, cfg);
     auto ctx1 = std::make_shared<t_ctx1>(schema, cfg);
 
     ctx1->init();
@@ -860,7 +875,8 @@ make_context_one(t_schema schema, val j_pivots, t_filter_op combiner,
  */
 t_ctx2_sptr
 make_context_two(t_schema schema, val j_rpivots, val j_cpivots,
-    t_filter_op combiner, val j_filters, val j_aggs, val j_sortby)
+    t_filter_op combiner, val j_filters, val j_aggs, val j_sortby,
+    val j_sortmap)
 {
     auto fvec = _get_fterms(schema, j_filters);
     auto aggspecs = _get_aggspecs(j_aggs);
@@ -870,6 +886,7 @@ make_context_two(t_schema schema, val j_rpivots, val j_cpivots,
 
     auto cfg
         = t_config(rpivots, cpivots, aggspecs, TOTALS_HIDDEN, combiner, fvec);
+    _configure_sort_map(j_sortmap, cfg);
     auto ctx2 = std::make_shared<t_ctx2>(schema, cfg);
 
     ctx2->init();
