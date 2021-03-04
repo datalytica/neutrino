@@ -225,7 +225,7 @@ void
 vecFromTypedArray(const val& typedArray, void* data, t_int32 length,
     const char* destType = nullptr)
 {
-    val memory = val::module_property("buffer");
+    val memory = val::module_property("HEAP8")["buffer"];
     if (destType == nullptr)
     {
         val memoryView = typedArray["constructor"].new_(
