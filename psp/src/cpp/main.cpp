@@ -408,9 +408,9 @@ _fill_col<t_time>(val dcol, t_col_sptr col, t_bool is_arrow)
 t_date
 jsdate_to_t_date(val date)
 {
-    return t_date(date.call<val>("getFullYear").as<t_int32>(),
-        date.call<val>("getMonth").as<t_int32>(),
-        date.call<val>("getDate").as<t_int32>());
+    return t_date(date.call<val>("getUTCFullYear").as<t_int32>(),
+        date.call<val>("getUTCMonth").as<t_int32>(),
+        date.call<val>("getUTCDate").as<t_int32>());
 }
 
 val
