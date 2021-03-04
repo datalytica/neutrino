@@ -35,14 +35,14 @@ psp_log_time(const t_str& s)
     if (!th_curtime_initialized)
     {
         th_curtime_origin = psp_curtime();
-        th_curmem_origin = psp_curmem();
+        th_curmem_origin = 0; //psp_curmem();
         th_curtime_initialized = true;
     }
 
     auto prev_time = th_curtime / 1000000000.0;
     auto ns_curtime = psp_curtime() - th_curtime_origin;
     auto curtime = ns_curtime / 1000000000.0;
-    auto curmem = psp_curmem();
+    auto curmem = 0; //psp_curmem();
     auto prev_curmem = static_cast<t_index>(th_curmem);
     th_curmem = curmem;
     th_curtime = ns_curtime;
