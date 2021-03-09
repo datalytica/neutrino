@@ -56,6 +56,7 @@ t_traversal::populate_root_children(const t_stnode_vec& rchildren)
 
     // Initialize root
     (*m_nodes)[0].m_expanded = true;
+    (*m_nodes)[0].m_selected = false;
     (*m_nodes)[0].m_depth = 0;
     (*m_nodes)[0].m_rel_pidx = INVALID_INDEX;
     (*m_nodes)[0].m_tnid = 0;
@@ -69,6 +70,7 @@ t_traversal::populate_root_children(const t_stnode_vec& rchildren)
     {
         t_tvnode& cnode = (*m_nodes)[count];
         cnode.m_expanded = false;
+        cnode.m_selected = false;
         cnode.m_depth = 1;
         cnode.m_rel_pidx = count;
         cnode.m_tnid = iter->m_idx;
@@ -84,6 +86,69 @@ t_traversal::populate_root_children(t_stree_csptr tree)
     t_stnode_vec rchildren;
     tree->get_child_nodes(0, rchildren);
     populate_root_children(rchildren);
+}
+
+void
+t_traversal::select_node(t_tvidx idx)
+{
+    // Find first leaf node
+    t_index i = 0, r = 0;
+    for (t_index loop_end = m_nodes->size(); i < loop_end; ++i)
+    {
+        t_tvnode& node = (*m_nodes)[i];
+        if (node.m_expanded) continue;
+        if (r == idx) {
+            // Select all children?
+            node.m_selected = true;
+            break;
+        }
+        r++;
+    }
+}
+
+void
+t_traversal::deselect_node(t_tvidx idx)
+{
+    // Find first leaf node
+    t_index i = 0, r = 0;
+    for (t_index loop_end = m_nodes->size(); i < loop_end; ++i)
+    {
+        t_tvnode& node = (*m_nodes)[i];
+        if (node.m_expanded) continue;
+        if (r == idx) {
+            // Select all children?
+            node.m_selected = false;
+            break;
+        }
+        r++;
+    }
+
+}
+
+void
+t_traversal::clear_selection()
+{
+    for (t_index i = 0, loop_end = m_nodes->size(); i < loop_end; ++i)
+    {
+        (*m_nodes)[i].m_selected = false;
+    }
+}
+
+void
+t_traversal::get_selected_indices(std::vector<t_tvidx>& out_data) const
+{
+    t_index r = 0;
+    for (t_index i = 0, loop_end = m_nodes->size(); i < loop_end; ++i)
+    {
+        t_tvnode& node = (*m_nodes)[i];
+        if (node.m_expanded) continue;
+
+        // Track in leaf space
+        if (node.m_selected) {
+            out_data.push_back(r);
+        }
+        r++;
+    }
 }
 
 t_index
@@ -278,7 +343,7 @@ t_traversal::add_node(const t_sortsvec& sortby,
 
         t_depth depth = get_depth(p_tvidx) + 1;
         t_tvnode new_node;
-        fill_travnode(&new_node, false, depth, cur_cidx - p_tvidx, 0, c_ptidx);
+        fill_travnode(&new_node, false, false, depth, cur_cidx - p_tvidx, 0, c_ptidx);
         auto insert_iter = m_nodes->begin() + cur_cidx;
         m_nodes->insert(insert_iter, new_node);
         update_ancestors(cur_cidx, 1);

@@ -1319,6 +1319,10 @@ EMSCRIPTEN_BINDINGS(perspective)
         .function("get_depth", &t_ctx1::get_depth)
         .function("open", select_overload<t_index(t_tvidx)>(&t_ctx1::open))
         .function("close", select_overload<t_index(t_tvidx)>(&t_ctx1::close))
+        .function("select_node", &t_ctx1::select_node)
+        .function("deselect_node", &t_ctx1::deselect_node)
+        .function("clear_selection", &t_ctx1::clear_selection)
+        .function("get_selected_indices", &t_ctx1::get_selected_indices)
         .function("get_trav_depth", &t_ctx1::get_trav_depth)
         .function("get_column_names", &t_ctx1::get_aggregates)
         .function("get_column_dtype", &t_ctx1::get_column_dtype)
@@ -1366,6 +1370,10 @@ EMSCRIPTEN_BINDINGS(perspective)
             "open", select_overload<t_index(t_header, t_tvidx)>(&t_ctx2::open))
         .function("close",
             select_overload<t_index(t_header, t_tvidx)>(&t_ctx2::close))
+        .function("select_node", &t_ctx2::select_node)
+        .function("deselect_node", &t_ctx2::deselect_node)
+        .function("clear_selection", &t_ctx2::clear_selection)
+        .function("get_selected_indices", &t_ctx2::get_selected_indices)
         .function("get_column_names", &t_ctx2::get_aggregates)
         .function("get_column_dtype", &t_ctx2::get_column_dtype)
         .function("unity_get_row_data", &t_ctx2::unity_get_row_data)
@@ -1446,6 +1454,7 @@ EMSCRIPTEN_BINDINGS(perspective)
     register_vector<std::string>("std::vector<std::string>");
     register_vector<t_updctx>("t_updctx_vec");
     register_vector<t_uindex>("std::vector<t_uindex>");
+    register_vector<t_tvidx>("std::vector<t_tvidx>");
 
     enum_<t_header>("t_header")
         .value("HEADER_ROW", HEADER_ROW)

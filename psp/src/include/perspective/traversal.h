@@ -35,6 +35,11 @@ class t_traversal
 public:
     t_traversal(t_stree_csptr tree, t_bool handle_nan_sort);
 
+    void get_selected_indices(std::vector<t_tvidx>& out_data) const;
+    void select_node(t_tvidx idx);
+    void deselect_node(t_tvidx idx);
+    void clear_selection();
+
     t_index expand_node(t_tvidx exp_idx);
 
     t_index expand_node(

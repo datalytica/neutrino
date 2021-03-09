@@ -31,6 +31,11 @@ public:
     t_index open(t_header header, t_tvidx idx);
     t_index close(t_header header, t_tvidx idx);
 
+    std::vector<t_tvidx> get_selected_indices() const;
+    void select_node(t_tvidx idx);
+    void deselect_node(t_tvidx idx);
+    void clear_selection();
+
     t_totals get_totals() const;
     std::vector<t_tvidx> get_ctraversal_indices() const;
     t_uindex get_num_view_columns() const;

@@ -110,6 +110,44 @@ t_ctx1::close(t_tvidx idx)
     return retval;
 }
 
+void
+t_ctx1::select_node(t_tvidx idx)
+{
+    PSP_TRACE_SENTINEL();
+    PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
+    if (idx >= t_tvidx(m_traversal->size()))
+        return;
+
+    m_traversal->select_node(idx);
+}
+
+void
+t_ctx1::deselect_node(t_tvidx idx)
+{
+    PSP_TRACE_SENTINEL();
+    PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
+    if (idx >= t_tvidx(m_traversal->size()))
+        return;
+
+    m_traversal->deselect_node(idx);
+}
+
+void
+t_ctx1::clear_selection()
+{
+    PSP_TRACE_SENTINEL();
+    PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
+    m_traversal->clear_selection();
+}
+
+std::vector<t_tvidx>
+t_ctx1::get_selected_indices() const
+{
+    std::vector<t_tvidx> rval;
+    m_traversal->get_selected_indices(rval);
+    return rval;
+}
+
 t_tscalvec
 t_ctx1::get_data(t_tvidx start_row, t_tvidx end_row, t_tvidx start_col,
     t_tvidx end_col) const

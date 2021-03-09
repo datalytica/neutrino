@@ -18,6 +18,7 @@ namespace perspective
 struct PERSPECTIVE_EXPORT t_tvnode
 {
     bool m_expanded;
+    bool m_selected;
     t_uindex m_depth;
     t_index m_rel_pidx;
     t_uindex m_ndesc;
@@ -25,7 +26,7 @@ struct PERSPECTIVE_EXPORT t_tvnode
     t_uindex m_nchild;
 };
 
-PERSPECTIVE_EXPORT void fill_travnode(t_tvnode* node, bool expanded,
+PERSPECTIVE_EXPORT void fill_travnode(t_tvnode* node, bool expanded, bool selected,
     t_uindex depth, t_uindex rel_pidx, t_uindex ndesc, t_uindex tnid);
 
 struct PERSPECTIVE_EXPORT t_ftreenode

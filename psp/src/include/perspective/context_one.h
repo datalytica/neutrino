@@ -35,6 +35,11 @@ public:
     t_index open(t_tvidx idx);
     t_index close(t_tvidx idx);
 
+    std::vector<t_tvidx> get_selected_indices() const;
+    void select_node(t_tvidx idx);
+    void deselect_node(t_tvidx idx);
+    void clear_selection();
+
     t_aggspec get_aggregate(t_uindex idx) const;
     t_aggspecvec get_aggregates() const;
     t_tscalvec get_row_path(t_tvidx idx) const;

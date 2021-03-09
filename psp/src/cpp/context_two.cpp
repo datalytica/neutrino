@@ -185,6 +185,45 @@ t_ctx2::close(t_header header, t_tvidx idx)
     return retval;
 }
 
+void
+t_ctx2::select_node(t_tvidx idx)
+{
+    PSP_TRACE_SENTINEL();
+    PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
+    if (idx >= t_tvidx(m_rtraversal->size()))
+        return;
+
+    m_rtraversal->select_node(idx);
+}
+
+void
+t_ctx2::deselect_node(t_tvidx idx)
+{
+    PSP_TRACE_SENTINEL();
+    PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
+    if (idx >= t_tvidx(m_rtraversal->size()))
+        return;
+
+    m_rtraversal->deselect_node(idx);
+}
+
+
+void
+t_ctx2::clear_selection()
+{
+    PSP_TRACE_SENTINEL();
+    PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
+    m_rtraversal->clear_selection();
+}
+
+std::vector<t_tvidx>
+t_ctx2::get_selected_indices() const
+{
+    std::vector<t_tvidx> rval;
+    m_rtraversal->get_selected_indices(rval);
+    return rval;
+}
+
 t_totals
 t_ctx2::get_totals() const
 {
