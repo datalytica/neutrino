@@ -215,6 +215,31 @@ class WorkerHost {
         this._sendSnapshot(name, context);
         break;
       }
+      case 'clear-selection': {
+        let { name } = msg.data as any;
+        let context = this._context_map.get(name as Private.ViewName);
+        context.clear_selection();
+        this._sendSnapshot(name, context);
+        break;
+      }
+      case 'select-node': {
+        let { name, start, end } = msg.data as any;
+        let context = this._context_map.get(name as Private.ViewName);
+        for (let i = start; i <= end; i++) {
+          context.select_node(i);
+        }
+        this._sendSnapshot(name, context);
+        break;
+      }
+      case 'deselect-node': {
+        let { name, start, end } = msg.data as any;
+        let context = this._context_map.get(name as Private.ViewName);
+        for (let i = start; i <= end; i++) {
+          context.deselect_node(i);
+        }
+        this._sendSnapshot(name, context);
+        break;
+      }
       case "shutdown": {
         this.shutdown();
         break;
@@ -505,6 +530,7 @@ namespace Private {
     let data: any[] = [];
     let row_spans: any[] = [];
     let col_spans: any[] = [];
+    let selected_indices: number[] = []
 
     if (sides === 0) {
       end_col = context.unity_get_column_count();
@@ -526,6 +552,12 @@ namespace Private {
       let row_depth = 0;
       let column_depth = 0;
       stride = 0;
+
+      let idx = context.get_selected_indices();
+      for (let i = 0; i < idx.size(); i++) {
+          selected_indices.push(idx.get(i));
+      }
+      idx.delete();
 
       let slice;
       if (sides === 1) {
@@ -628,7 +660,14 @@ namespace Private {
       slice.delete();
     }
 
-    return { header: header, row_spans: row_spans, col_spans: col_spans, data: data, schema: schema };
+    return { 
+      header: header,
+      row_spans: row_spans,
+      col_spans: col_spans,
+      data: data,
+      schema: schema,
+      selected_indices: selected_indices,
+    };
   }
 }
 

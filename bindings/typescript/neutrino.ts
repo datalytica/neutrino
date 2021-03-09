@@ -41,6 +41,7 @@ type FlatResult = {
   col_spans: Array<Array<any>>;
   data: Array<Array<any>>;
   schema: Schema;
+  selected_indices: Array<number>;
 }
 
 export
@@ -227,6 +228,37 @@ class View {
         name: this._name,
         depth: depth,
         isColumn: isColumn
+      }
+    });
+  }
+
+  clear_selection(): void {
+    this._engine.postMessage({
+      cmd: 'clear-selection',
+      data: {
+        name: this._name,
+      }
+    });
+  }
+
+  select(start: number, end: number): void {
+    this._engine.postMessage({
+      cmd: 'select-node',
+      data: {
+        name: this._name,
+        start: start,
+        end: end
+      }
+    });
+  }
+
+  deselect(start: number, end: number): void {
+    this._engine.postMessage({
+      cmd: 'deselect-node',
+      data: {
+        name: this._name,
+        start: start,
+        end: end
       }
     });
   }
