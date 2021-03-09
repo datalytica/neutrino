@@ -46,6 +46,11 @@ public:
 
     t_tscalar get_pkey(t_tvidx idx) const;
 
+    void get_selected_indices(std::vector<t_tvidx>& out_data) const;
+    void select_node(t_tvidx idx);
+    void deselect_node(t_tvidx idx);
+    void clear_selection();
+
     void fill_sort_elem(t_gstate_csptr state, const t_config& config,
         const t_tscalvec& row, t_mselem& out_elem) const;
 
@@ -98,6 +103,7 @@ private:
     t_mselemvec_sptr m_index;
     t_bool m_handle_nan_sort;
     t_symtable m_symtable;
+    t_tscalset m_selected_pkeys;
 };
 
 typedef std::shared_ptr<t_ftrav> t_ftrav_sptr;

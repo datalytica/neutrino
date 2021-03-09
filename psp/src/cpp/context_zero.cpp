@@ -106,6 +106,44 @@ t_ctx0::get_column_count() const
     return m_config.get_num_columns();
 }
 
+void
+t_ctx0::select_node(t_tvidx idx)
+{
+    PSP_TRACE_SENTINEL();
+    PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
+    if (idx >= t_tvidx(m_traversal->size()))
+        return;
+
+    m_traversal->select_node(idx);
+}
+
+void
+t_ctx0::deselect_node(t_tvidx idx)
+{
+    PSP_TRACE_SENTINEL();
+    PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
+    if (idx >= t_tvidx(m_traversal->size()))
+        return;
+
+    m_traversal->deselect_node(idx);
+}
+
+void
+t_ctx0::clear_selection()
+{
+    PSP_TRACE_SENTINEL();
+    PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
+    m_traversal->clear_selection();
+}
+
+std::vector<t_tvidx>
+t_ctx0::get_selected_indices() const
+{
+    std::vector<t_tvidx> rval;
+    m_traversal->get_selected_indices(rval);
+    return rval;
+}
+
 t_tscalvec
 t_ctx0::get_data(t_tvidx start_row, t_tvidx end_row, t_tvidx start_col,
     t_tvidx end_col) const

@@ -530,7 +530,13 @@ namespace Private {
     let data: any[] = [];
     let row_spans: any[] = [];
     let col_spans: any[] = [];
+
     let selected_indices: number[] = []
+    let idx = context.get_selected_indices();
+    for (let i = 0; i < idx.size(); i++) {
+        selected_indices.push(idx.get(i));
+    }
+    idx.delete();
 
     if (sides === 0) {
       end_col = context.unity_get_column_count();
@@ -552,12 +558,6 @@ namespace Private {
       let row_depth = 0;
       let column_depth = 0;
       stride = 0;
-
-      let idx = context.get_selected_indices();
-      for (let i = 0; i < idx.size(); i++) {
-          selected_indices.push(idx.get(i));
-      }
-      idx.delete();
 
       let slice;
       if (sides === 1) {

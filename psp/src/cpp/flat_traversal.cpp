@@ -98,6 +98,39 @@ t_ftrav::get_pkey(t_tvidx idx) const
 }
 
 void
+t_ftrav::select_node(t_tvidx idx)
+{
+    t_tscalar pkey = (*m_index)[idx].m_pkey;
+    m_selected_pkeys.insert(pkey);
+}
+
+void
+t_ftrav::deselect_node(t_tvidx idx)
+{
+    t_tscalar pkey = (*m_index)[idx].m_pkey;
+    m_selected_pkeys.erase(pkey);
+}
+
+void
+t_ftrav::clear_selection()
+{
+    m_selected_pkeys.clear();
+}
+
+void
+t_ftrav::get_selected_indices(std::vector<t_tvidx>& out_data) const
+{
+    for (t_tvidx idx = 0, loop_end = size(); idx < loop_end; ++idx)
+    {
+        const t_tscalar& pkey = (*m_index)[idx].m_pkey;
+        if (m_selected_pkeys.find(pkey) != m_selected_pkeys.end())
+        {
+            out_data.push_back(idx);
+        }
+    }
+}
+
+void
 t_ftrav::fill_sort_elem(t_gstate_csptr state, const t_config& config,
     t_tscalar pkey, t_mselem& out_elem)
 {

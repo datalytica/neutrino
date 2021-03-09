@@ -32,6 +32,11 @@ public:
 
     std::vector<t_str> get_column_names() const;
 
+    std::vector<t_tvidx> get_selected_indices() const;
+    void select_node(t_tvidx idx);
+    void deselect_node(t_tvidx idx);
+    void clear_selection();
+
     void sort_by();
     t_sortsvec get_sort_by() const;
 
