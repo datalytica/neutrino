@@ -535,7 +535,8 @@ _fill_col<std::string>(val dcol, t_col_sptr col, t_bool is_arrow)
 
     if (is_arrow)
     {
-        if (dcol["constructor"]["name"].as<t_str>() == "DictionaryVector")
+	t_str vecname = dcol["VectorName"].as<t_str>();
+        if (vecname == "DictionaryVector")
         {
 
             val dictvec = dcol["dictionary"];
@@ -550,8 +551,7 @@ _fill_col<std::string>(val dcol, t_col_sptr col, t_bool is_arrow)
             arrow::vecFromTypedArray(
                 vkeys, col->get_nth<t_uindex>(0), nrows, "Uint32Array");
         }
-        else if (dcol["constructor"]["name"].as<t_str>() == "Utf8Vector"
-            || dcol["constructor"]["name"].as<t_str>() == "BinaryVector")
+        else if (vecname == "Utf8Vector" || vecname == "BinaryVector")
         {
 
             val vdata = dcol["values"];

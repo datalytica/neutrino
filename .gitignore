@@ -80,6 +80,8 @@ ftpsync.settings
 Gemfile
 Gemfile.lock
 Vagrantfile
+dist
+yarn.lock
 
 .DS_Store
 

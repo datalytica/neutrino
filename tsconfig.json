@@ -1,0 +1,31 @@
+{
+    "compilerOptions": {
+        "declaration": true,
+        "noImplicitAny": true,
+        "noEmitOnError": true,
+        "noUnusedLocals": true,
+        "strictNullChecks": true,
+        "sourceMap": true,
+        "esModuleInterop": true,
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "target": "es6",
+        "outDir": "./dist/js/lib",
+        "lib": [
+            "es6",
+            "webworker",
+        ],
+        "types": [],
+        "baseUrl": ".",
+        "paths": {
+          "@internal/*": [
+            "bindings/typescript/*",
+            "psp/build/install/*"
+          ]
+        }
+    },
+    "include": [
+        "bindings/typescript/*",
+        "node_modules/@apache-arrow/ts/Arrow.ts"
+    ]
+}

@@ -1,0 +1,31 @@
+{
+  "name": "neutrino",
+  "version": "1.0.0",
+  "main": "dist/js/neutrino.js",
+  "types": "dist/js/lib/neutrino.d.ts",
+  "files": [
+    "dist/js/psp.async.wasm",
+    "dist/js/*.js",
+    "dist/js/lib/*.d.ts"
+  ],
+  "scripts": {
+    "build": "npm run build:typescript && npm run build:copy",
+    "build:wasm": "cd psp; /bin/bash build.sh",
+    "build:wasm:docker": "docker run --rm --cpus 8 -v $(pwd):/src -u $(id -u):$(id -g) trzeci/emscripten:1.39.4-upstream bash build.sh",
+    "build:typescript": "webpack --color --config webpack.config.js",
+    "build:copy": "cp psp/build/install/psp.async.wasm dist/js",
+    "clean": "rimraf build"
+  },
+  "license": "Apache-2.0",
+  "dependencies": {
+    "apache-arrow": "~3.0.0"
+  },
+  "devDependencies": {
+    "rimraf": "^2.6.2",
+    "typescript": "^3.7.4",
+    "webpack": "^4.41.5",
+    "webpack-cli": "^3.3.10",
+    "worker-loader": "^2.0.0",
+    "ts-loader": "^6.2.1"
+  }
+}
