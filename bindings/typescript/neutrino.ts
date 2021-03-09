@@ -41,6 +41,8 @@ type FlatResult = {
   col_spans: Array<Array<any>>;
   data: Array<Array<any>>;
   schema: Schema;
+  row_pivots: Array<string>;
+  column_pivots: Array<string>;
   selected_indices: Array<number>;
 }
 

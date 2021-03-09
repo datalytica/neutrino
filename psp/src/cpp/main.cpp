@@ -1237,6 +1237,9 @@ main(int argc, char** argv)
 
 EMSCRIPTEN_BINDINGS(perspective)
 {
+    class_<t_pivot>("t_pivot")
+        .function("name", &t_pivot::colname);
+
     class_<t_column>("t_column")
         .smart_ptr<std::shared_ptr<t_column>>("shared_ptr<t_column>")
         .function("set_scalar", &t_column::set_scalar);
@@ -1312,6 +1315,7 @@ EMSCRIPTEN_BINDINGS(perspective)
         .constructor<t_schema, t_config>()
         .smart_ptr<std::shared_ptr<t_ctx1>>("shared_ptr<t_ctx1>")
         .function("sidedness", &t_ctx1::sidedness)
+        .function("get_row_pivots", &t_ctx1::get_row_pivots)
         .function("get_row_count", &t_ctx1::get_row_count)
         .function("get_column_count", &t_ctx1::get_column_count)
         .function("get_data", &t_ctx1::get_data)
@@ -1361,6 +1365,8 @@ EMSCRIPTEN_BINDINGS(perspective)
         .constructor<t_schema, t_config>()
         .smart_ptr<std::shared_ptr<t_ctx2>>("shared_ptr<t_ctx2>")
         .function("sidedness", &t_ctx2::sidedness)
+        .function("get_row_pivots", &t_ctx2::get_row_pivots)
+        .function("get_column_pivots", &t_ctx2::get_column_pivots)
         .function("get_row_count", &t_ctx2::get_row_count)
         .function("get_column_count", &t_ctx2::get_column_count)
         .function("get_data", &t_ctx2::get_data)
@@ -1459,6 +1465,7 @@ EMSCRIPTEN_BINDINGS(perspective)
     register_vector<t_updctx>("t_updctx_vec");
     register_vector<t_uindex>("std::vector<t_uindex>");
     register_vector<t_tvidx>("std::vector<t_tvidx>");
+    register_vector<t_pivot>("t_pivotvec");
 
     enum_<t_header>("t_header")
         .value("HEADER_ROW", HEADER_ROW)

@@ -40,6 +40,7 @@ public:
     void deselect_node(t_tvidx idx);
     void clear_selection();
 
+    t_pivotvec get_row_pivots() const;
     t_aggspec get_aggregate(t_uindex idx) const;
     t_aggspecvec get_aggregates() const;
     t_tscalvec get_row_path(t_tvidx idx) const;

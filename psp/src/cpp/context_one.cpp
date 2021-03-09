@@ -249,6 +249,13 @@ t_ctx1::step_end()
     }
 }
 
+t_pivotvec
+t_ctx1::get_row_pivots() const
+{
+    return m_config.get_row_pivots();
+}
+
+
 t_aggspec
 t_ctx1::get_aggregate(t_uindex idx) const
 {

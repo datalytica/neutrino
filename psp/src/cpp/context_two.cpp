@@ -705,6 +705,18 @@ t_ctx2::translate_column_index(t_tvidx idx) const
     return rval;
 }
 
+t_pivotvec
+t_ctx2::get_row_pivots() const
+{
+    return m_config.get_row_pivots();
+}
+
+t_pivotvec
+t_ctx2::get_column_pivots() const
+{
+    return m_config.get_column_pivots();
+}
+
 t_aggspecvec
 t_ctx2::get_aggregates() const
 {

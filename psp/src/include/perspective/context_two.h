@@ -47,6 +47,9 @@ public:
     t_tscalvec get_column_path(const t_tvnode& node) const;
     t_tscalvec get_column_path_userspace(t_tvidx idx) const;
 
+    t_pivotvec get_row_pivots() const;
+    t_pivotvec get_column_pivots() const;
+
     t_aggspecvec get_aggregates() const;
 
     void set_depth(t_header header, t_depth depth);

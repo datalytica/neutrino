@@ -489,6 +489,8 @@ namespace Private {
     let start_col = 0;
     let schema: any = {};
     let header: Array<string> = [];
+    let row_pivots: Array<string> = [];
+    let column_pivots: Array<string> = [];
     let end_row, end_col, stride;
 
     let sides = context.sidedness();
@@ -559,6 +561,12 @@ namespace Private {
       let column_depth = 0;
       stride = 0;
 
+      const rp = context.get_row_pivots();
+      for(let i = 0, end = rp.size(); i < end; i++) {
+        row_pivots.push(rp.get(i).name());
+      }
+      rp.delete();
+
       let slice;
       if (sides === 1) {
         row_depth = context.get_depth() + 1;
@@ -573,6 +581,12 @@ namespace Private {
         column_depth = context.get_depth(Module.t_header.HEADER_COLUMN) + 1;
         end_row = context.get_leaf_count(Module.t_header.HEADER_ROW);
         slice = context.get_leaf_data(start_row, end_row, start_col, end_col);
+
+        const cp = context.get_column_pivots();
+        for(let i = 0, end = cp.size(); i < end; i++) {
+          column_pivots.push(cp.get(i).name());
+        }
+        cp.delete();
       }
 
       let start = 0;
@@ -666,6 +680,8 @@ namespace Private {
       col_spans: col_spans,
       data: data,
       schema: schema,
+      row_pivots: row_pivots,
+      column_pivots: column_pivots,
       selected_indices: selected_indices,
     };
   }
