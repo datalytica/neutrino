@@ -1,6 +1,8 @@
 
+const TerserPlugin = require('terser-webpack-plugin');
+const CopyPlugin = require("copy-webpack-plugin");
+
 const {resolve} = require('path');
-let webpack = require('webpack');
 
 const build = 'release';
 
@@ -10,22 +12,44 @@ module.exports = {
   },
   output: {
     filename: '[name].js',
-    path: resolve(__dirname, 'dist/js'),
+    path: resolve(__dirname, 'dist', 'js'),
     library: '[name]',
     libraryTarget: 'umd',
     publicPath: './dist/js/'
   },
   resolve: {
     alias: {
-        '@internal/psp.async': resolve(__dirname, 'psp/build/install/psp.async.js')
+        '@internal/psp.async': resolve(__dirname, 'psp', build, 'install', 'psp.async.js')
     },
     extensions: ['.ts', '.js'],
   },
-  plugins: [],
+  plugins: [
+    new CopyPlugin([
+        {
+            from: resolve(__dirname, 'psp', build, 'install', 'psp.async.wasm'),
+        }
+    ],
+    { logLevel: 'warn' }
+    ),
+  ],
   module: {
     rules: [
       {test: /\.tsx?$/, use: {loader: 'ts-loader'}},
     ]
   },
-  //devtool: 'inline-source-map'
+  optimization: {
+    minimize: true,
+    minimizer: [new TerserPlugin({
+      parallel: true,
+      sourceMap: true,
+      terserOptions: {
+        output: {
+          ascii_only: true,
+          beautify: false,
+       }
+     }
+    })
+    ],
+  },
+  devtool: 'source-map'
 };

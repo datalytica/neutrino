@@ -1,6 +1,6 @@
 {
-  "name": "neutrino",
-  "version": "1.0.0",
+  "name": "@datalytica/neutrino",
+  "version": "0.1.0",
   "main": "dist/js/neutrino.js",
   "types": "dist/js/lib/neutrino.d.ts",
   "files": [
@@ -9,12 +9,11 @@
     "dist/js/lib/*.d.ts"
   ],
   "scripts": {
-    "build": "npm run build:typescript && npm run build:copy",
+    "build": "npm run build:typescript",
     "build:wasm": "cd psp; /bin/bash build.sh",
     "build:wasm:docker": "docker run --rm --cpus 8 -v $(pwd):/src -u $(id -u):$(id -g) trzeci/emscripten:1.39.4-upstream bash build.sh",
     "build:typescript": "webpack --color --config webpack.config.js",
-    "build:copy": "cp psp/build/install/psp.async.wasm dist/js",
-    "clean": "rimraf build"
+    "clean": "rimraf dist"
   },
   "license": "Apache-2.0",
   "dependencies": {
@@ -26,6 +25,8 @@
     "webpack": "^4.41.5",
     "webpack-cli": "^3.3.10",
     "worker-loader": "^2.0.0",
+    "terser-webpack-plugin": "^2.3.5",
+    "copy-webpack-plugin": "^5.1.1",
     "ts-loader": "^6.2.1"
   }
 }
