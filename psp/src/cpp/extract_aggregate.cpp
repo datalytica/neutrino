@@ -20,8 +20,6 @@ t_tscalar
 extract_aggregate(const t_aggspec& aggspec, const t_column* aggcol,
     t_uindex ridx, t_index pridx)
 {
-    static t_str non_unique("-");
-
     auto maybe_nan = [](t_float64 v) {
         return std::isnan(v) ? std::numeric_limits<double>::quiet_NaN() : v;
     };
@@ -86,7 +84,7 @@ extract_aggregate(const t_aggspec& aggspec, const t_column* aggcol,
             if (!rval.is_valid())
             {
                 t_tscalar rv;
-                rv.set(non_unique.c_str());
+                rv.set(t_none());
                 return rv;
             }
             return rval;
