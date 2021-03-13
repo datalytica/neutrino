@@ -622,36 +622,42 @@ t_gnode::_process()
         {
             std::cout << repr() << "gnode_process_flattened_mask" << std::endl;
             flattened_masked->pprint();
+            std::cout << std::endl;
         }
 
         if (t_env::log_data_gnode_delta())
         {
             std::cout << repr() << "gnode_process_delta" << std::endl;
             delta->pprint();
+            std::cout << std::endl;
         }
 
         if (t_env::log_data_gnode_prev())
         {
             std::cout << repr() << "gnode_process_prev" << std::endl;
             prev->pprint();
+            std::cout << std::endl;
         }
 
         if (t_env::log_data_gnode_current())
         {
             std::cout << repr() << "gnode_process_current" << std::endl;
             current->pprint();
+            std::cout << std::endl;
         }
 
         if (t_env::log_data_gnode_transitions())
         {
             std::cout << repr() << "gnode_process_transitions" << std::endl;
             transitions->pprint();
+            std::cout << std::endl;
         }
 
         if (t_env::log_data_gnode_existed())
         {
             std::cout << repr() << "gnode_process_existed" << std::endl;
             existed->pprint();
+            std::cout << std::endl;
         }
 
         if (t_env::log_time_gnode_process())
@@ -667,6 +673,7 @@ t_gnode::_process()
                              t2 - m_epoch)
                              .count()
                       << std::endl;
+            std::cout << std::endl;
         }
 
         notify_contexts(*flattened_masked);

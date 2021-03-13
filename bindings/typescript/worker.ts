@@ -11,8 +11,17 @@ const Module = loadModule({
   printErr: (x: any) => console.error(x),
   print: (x: any) => console.log(x),
   ENV: {
-//    PSP_LOG_PROGRESS: false,
-  }
+/*    PSP_LOG_PROGRESS: false,
+    PSP_LOG_DATA_GNODE_FLATTENED: true,
+    PSP_LOG_DATA_GNODE_FLATTENED_MASK: true,
+    PSP_LOG_DATA_GNODE_DELTA: true,
+    PSP_LOG_DATA_GNODE_PREV: true,
+    PSP_LOG_DATA_GNODE_CURRENT: true,
+    PSP_LOG_DATA_GNODE_TRANSITIONS: true,
+    PSP_LOG_DATA_GNODE_EXISTED: true,
+    PSP_LOG_DATA_NSPARSE_STREE_PREV: true,
+    PSP_LOG_DATA_NSPARSE_STREE_AFTER: true,
+*/  }
 });
 
 

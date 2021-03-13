@@ -678,7 +678,7 @@ t_tscalar::repr() const
 {
     std::stringstream ss;
     ss << get_dtype_descr(static_cast<t_dtype>(m_type)) << ":"
-       << get_status_descr(m_status) << ":" << to_string();
+       << get_status_descr(m_status) << ":" << to_string(true);
     return ss.str();
 }
 
