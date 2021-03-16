@@ -5,12 +5,13 @@ import {
   Timestamp, Dictionary
 } from "apache-arrow";
 
+import { PerspectiveModule } from './psp';
+
 import loadModule from "@internal/psp.async";
 
-const Module = loadModule({
-  printErr: (x: any) => console.error(x),
-  print: (x: any) => console.log(x),
-  ENV: {
+let Module: PerspectiveModule;
+
+const ENV = {
 /*    PSP_LOG_PROGRESS: false,
     PSP_LOG_DATA_GNODE_FLATTENED: true,
     PSP_LOG_DATA_GNODE_FLATTENED_MASK: true,
@@ -21,8 +22,8 @@ const Module = loadModule({
     PSP_LOG_DATA_GNODE_EXISTED: true,
     PSP_LOG_DATA_NSPARSE_STREE_PREV: true,
     PSP_LOG_DATA_NSPARSE_STREE_AFTER: true,
-*/  }
-});
+*/
+}
 
 
 /**
@@ -43,7 +44,13 @@ class WorkerHost {
 
     this._scope.addEventListener("message", queued_listener, false);
 
-    Module.onRuntimeInitialized = () => {
+    loadModule({
+      printErr: (x: any) => console.error(x),
+      print: (x: any) => console.log(x),
+      ENV: ENV
+    }).then((instance: PerspectiveModule) => {
+      Module = instance;
+
       this._pool = new Module.t_pool({
         _update_callback: () => this._poolUpdated()
       });
@@ -59,7 +66,7 @@ class WorkerHost {
 
       this._scope.removeEventListener("message", queued_listener);
       this._scope.addEventListener("message", (ev: MessageEvent) => { this._processMessage(ev.data); }, false);
-    }
+    });
   }
 
   shutdown() {

@@ -11,7 +11,7 @@
   "scripts": {
     "build": "npm run build:typescript",
     "build:wasm": "cd psp; /bin/bash build.sh",
-    "build:wasm:docker": "docker run --rm --cpus 8 -v $(pwd):/src -u $(id -u):$(id -g) trzeci/emscripten:1.39.4-upstream bash build.sh",
+    "build:wasm:docker": "docker run --rm --cpus 8 -v $(pwd):/src -u $(id -u):$(id -g) emscripten/emsdk:2.0.17 bash build.sh",
     "build:typescript": "webpack --color --config webpack.config.js",
     "clean": "rimraf dist"
   },
