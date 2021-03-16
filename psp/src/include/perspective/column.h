@@ -168,6 +168,8 @@ public:
 
     t_bool is_valid(t_uindex idx) const;
 
+    t_bool is_invalid(t_uindex idx) const;
+
     t_bool is_cleared(t_uindex idx) const;
 
     t_bool is_vlen() const;

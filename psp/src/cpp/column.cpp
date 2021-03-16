@@ -548,8 +548,8 @@ t_column::clear(t_uindex idx, t_status status)
     {
         case DTYPE_STR:
         {
-            t_stridx v = 0;
-            set_nth<t_stridx>(idx, v, status);
+            t_str empty;
+            set_nth<const char*>(idx, empty.c_str(), status);
         }
         break;
         case DTYPE_TIME:
@@ -636,6 +636,15 @@ t_column::is_valid(t_uindex idx) const
     COLUMN_CHECK_ACCESS(idx);
     t_status status = *m_status->get_nth<t_status>(idx);
     return status == STATUS_VALID;
+}
+
+t_bool
+t_column::is_invalid(t_uindex idx) const
+{
+    PSP_VERBOSE_ASSERT(is_status_enabled(), "Status not available for column");
+    COLUMN_CHECK_ACCESS(idx);
+    t_status status = *m_status->get_nth<t_status>(idx);
+    return status == STATUS_INVALID;
 }
 
 t_bool

@@ -271,10 +271,9 @@ t_gstate::update_history(const t_table* tbl)
 
                 if (!is_valid)
                 {
-                    t_bool is_cleared = fcolumn->is_cleared(idx);
-                    if (is_cleared)
+                    if (fcolumn->is_cleared(idx))
                     {
-                        scolumn->clear(stableidx);
+                        scolumn->clear(stableidx, STATUS_CLEAR);
                     }
                     continue;
                 }

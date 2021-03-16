@@ -220,7 +220,7 @@ t_gnode::populate_icols_in_flattened(
             for (t_uindex ridx = 0; ridx < nrows; ++ridx)
             {
                 const auto& lk = lkup[ridx];
-                if (!ocol->is_valid(ridx) && lk.m_exists)
+                if (ocol->is_invalid(ridx) && lk.m_exists)
                 {
                     ocol->set_scalar(ridx, icol->get_scalar(lk.m_idx));
                 }
@@ -1262,14 +1262,14 @@ t_gnode::_process_helper<t_str>(const t_column* fcolumn,
                 t_bool prev_valid = false;
 
                 auto cur_value = fcolumn->get_nth<const char>(idx);
-                t_str curs(cur_value);
+                //t_str curs(cur_value);
 
-                t_bool cur_valid = fcolumn->is_valid(idx);
+                t_bool cur_valid = !fcolumn->is_invalid(idx);
 
                 if (row_pre_existed)
                 {
                     prev_value = scolumn->get_nth<const char>(rlookup.m_idx);
-                    prev_valid = scolumn->is_valid(rlookup.m_idx);
+                    prev_valid = !scolumn->is_invalid(rlookup.m_idx);
                 }
 
                 t_bool exists = cur_valid;
@@ -1288,6 +1288,9 @@ t_gnode::_process_helper<t_str>(const t_column* fcolumn,
                 }
 
                 pcolumn->set_valid(added_count, prev_valid);
+                if (scolumn->is_cleared(rlookup.m_idx)) {
+                    pcolumn->clear(added_count, STATUS_CLEAR);
+                }
 
                 if (cur_valid)
                 {
@@ -1302,6 +1305,10 @@ t_gnode::_process_helper<t_str>(const t_column* fcolumn,
                 ccolumn->set_valid(
                     added_count, cur_valid ? cur_valid : prev_valid);
 
+                if (fcolumn->is_cleared(idx)) {
+                    ccolumn->clear(added_count, STATUS_CLEAR);
+                }
+
                 tcolumn->set_nth<t_uint8>(idx, trans);
             }
             break;
@@ -1312,7 +1319,7 @@ t_gnode::_process_helper<t_str>(const t_column* fcolumn,
                     auto prev_value
                         = scolumn->get_nth<const char>(rlookup.m_idx);
 
-                    t_bool prev_valid = scolumn->is_valid(rlookup.m_idx);
+                    t_bool prev_valid = !scolumn->is_invalid(rlookup.m_idx);
 
                     pcolumn->set_nth<const char*>(added_count, prev_value);
 

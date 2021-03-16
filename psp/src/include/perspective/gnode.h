@@ -265,12 +265,12 @@ t_gnode::_process_helper(const t_column* fcolumn, const t_column* scolumn,
                 t_bool prev_valid = false;
 
                 DATA_T cur_value = *(fcolumn->get_nth<DATA_T>(idx));
-                t_bool cur_valid = fcolumn->is_valid(idx);
+                t_bool cur_valid = !fcolumn->is_invalid(idx);
 
                 if (row_pre_existed)
                 {
                     prev_value = *(scolumn->get_nth<DATA_T>(rlookup.m_idx));
-                    prev_valid = scolumn->is_valid(rlookup.m_idx);
+                    prev_valid = !scolumn->is_invalid(rlookup.m_idx);
                 }
 
                 t_bool exists = cur_valid;
@@ -303,7 +303,7 @@ t_gnode::_process_helper(const t_column* fcolumn, const t_column* scolumn,
                 {
                     DATA_T prev_value
                         = *(scolumn->get_nth<DATA_T>(rlookup.m_idx));
-                    t_bool prev_valid = scolumn->is_valid(rlookup.m_idx);
+                    t_bool prev_valid = !scolumn->is_invalid(rlookup.m_idx);
 
                     pcolumn->set_nth<DATA_T>(added_count, prev_value);
                     pcolumn->set_valid(added_count, prev_valid);
