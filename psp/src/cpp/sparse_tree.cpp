@@ -1155,16 +1155,15 @@ t_stree::update_agg_table(t_uindex nidx, t_agg_update_info& info,
             break;
             case AGGTYPE_UDF_JS_REDUCE_FLOAT64:
             {
-                t_tscalar dst_scalar = dst->get_scalar(dst_ridx);
-                old_value.set(dst_scalar);
+                old_value.set(dst->get_scalar(dst_ridx));
                 auto pkeys = get_pkeys(nidx);
                 std::vector<t_float64> values;
                 gstate.read_column(
                     spec.get_dependencies()[0].name(), pkeys, values, false);
                 t_float64 result = get_evaluator()->reduce<t_float64>(
                     spec.get_kernel(), get_depth(nidx), values);
-                dst->set_scalar(dst_ridx, mktscalar(result));
                 new_value.set(mktscalar<t_float64>(result));
+                dst->set_scalar(dst_ridx, new_value);
             }
             break;
             case AGGTYPE_COUNT:

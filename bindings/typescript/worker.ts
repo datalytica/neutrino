@@ -409,6 +409,7 @@ namespace Private {
       case "distinct leaf": return Module.t_aggtype.AGGTYPE_DISTINCT_LEAF;
       case "pct sum parent": return Module.t_aggtype.AGGTYPE_PCT_SUM_PARENT;
       case "pct sum grand total": return Module.t_aggtype.AGGTYPE_PCT_SUM_GRAND_TOTAL;
+      case "udf float": return Module.t_aggtype.AGGTYPE_UDF_JS_REDUCE_FLOAT64;
     }
   }
 
@@ -465,8 +466,14 @@ namespace Private {
             throw `'${agg.op}' has incorrect arity ('${dep_length}') for column dependencies.`;
           }
         }
+
+        let kernel;
+        if (agg.op === "udf float") {
+          eval(`kernel = ${agg.kernel}`);
+        }
+
         let name = agg.name || (`${title(agg.op)} of (${agg.column.join('|')})`);
-        aggregates.push([name, agg_op, agg.column]);
+        aggregates.push([name, agg_op, agg.column, kernel]);
       }
     } else {
       let columns = schema.columns();

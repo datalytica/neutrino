@@ -393,11 +393,14 @@ t_aggspec::get_output_specs(const t_schema& schema) const
         case AGGTYPE_PCT_SUM_GRAND_TOTAL:
         case AGGTYPE_MUL:
         case AGGTYPE_SUM_NOT_NULL:
-        case AGGTYPE_UDF_JS_REDUCE_FLOAT64:
         {
             t_dtype coltype = schema.get_dtype(m_dependencies[0].name());
             return mk_col_name_type_vec(
                 name(), get_simple_accumulator_type(coltype));
+        }
+        case AGGTYPE_UDF_JS_REDUCE_FLOAT64:
+        {
+            return mk_col_name_type_vec(name(), DTYPE_FLOAT64);
         }
         case AGGTYPE_ANY:
         case AGGTYPE_UNIQUE:
