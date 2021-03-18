@@ -193,31 +193,45 @@ if (PSP_WASM_BUILD)
     set(CMAKE_CXX_FLAGS " \
         --bind \
         --memory-init-file 0 \
-                -Os \
-                -g0 \
-                -flto \
-                -s STRICT=1 \
-                -s MODULARIZE=1 \
-                -s EXPORT_ES6=1 \
-                -s USE_ES6_IMPORT_META=0 \
-                -s EXPORT_NAME=loadModule \
+        -Os \
+        -g0 \
+        -flto \
+        -s STRICT=1 \
+        -s MODULARIZE=1 \
+        -s EXPORT_ES6=1 \
+        -s USE_ES6_IMPORT_META=0 \
+        -s EXPORT_NAME=loadModule \
         -s NO_EXIT_RUNTIME=1 \
         -s NO_FILESYSTEM=1 \
         -s ALLOW_MEMORY_GROWTH=1 \
         -s DYNAMIC_EXECUTION=0 \
         -s ASSERTIONS=2 \
         -s EXPORTED_FUNCTIONS=\"['_main']\" \
-                --pre-js ../src/prejs \
+        --pre-js ../src/prejs \
     ")
 
-        set(CMAKE_CXX_FLAGS_DEBUG " \
-            -O0 \
-            -g4 \
-            -s SAFE_HEAP=1 \
-            -s DISABLE_EXCEPTION_CATCHING=0 \
-            -s ASSERTIONS=2 \
-            -s DEMANGLE_SUPPORT=1 \
-        ")
+    set(CMAKE_CXX_FLAGS_DEBUG " \
+        --bind \
+        --memory-init-file 0 \
+        -O0 \
+        -g3 \
+        -gsource-map \
+        -s SAFE_HEAP=1 \
+        -s DISABLE_EXCEPTION_CATCHING=0 \
+        -s ASSERTIONS=2 \
+        -s DEMANGLE_SUPPORT=1 \
+        -s STRICT=1 \
+        -s MODULARIZE=1 \
+        -s EXPORT_ES6=1 \
+        -s USE_ES6_IMPORT_META=0 \
+        -s EXPORT_NAME=loadModule \
+        -s NO_EXIT_RUNTIME=1 \
+        -s NO_FILESYSTEM=1 \
+        -s ALLOW_MEMORY_GROWTH=1 \
+        -s DYNAMIC_EXECUTION=0 \
+        -s EXPORTED_FUNCTIONS=\"['_main']\" \
+        --pre-js ../src/prejs \
+    ")
 
     set(ASYNC_MODE_FLAGS "-s ENVIRONMENT=worker -s WASM=1")
 endif()

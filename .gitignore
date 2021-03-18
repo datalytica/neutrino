@@ -94,3 +94,5 @@ cmake-build-debug
 # CPP Compile
 /include/boost
 obj
+psp/debug
+psp/release
