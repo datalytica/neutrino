@@ -562,7 +562,7 @@ t_ctx1::get_leaf_data(t_uindex start_row, t_uindex end_row, t_uindex start_col,
         else if (node.m_depth == depth)
         {
             t_uindex r_start = (ridx - start_row) * stride;
-            for (t_uindex hidx = 0; hidx < depth; ++hidx)
+            for (t_uindex hidx = 0; hidx < pheader.size(); ++hidx)
             {
                 values[r_start + hidx].set(pheader[hidx]);
             }

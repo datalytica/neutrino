@@ -1065,7 +1065,7 @@ t_ctx2::get_leaf_data(t_uindex start_row, t_uindex end_row, t_uindex start_col,
         {
             ridx++;
             t_uindex r_start = (ridx - start_row) * stride;
-            for (t_uindex hidx = 0; hidx < row_depth; ++hidx)
+            for (t_uindex hidx = 0; hidx < pheader.size(); ++hidx)
             {
                 retval[r_start + hidx].set(pheader[hidx]);
             }
