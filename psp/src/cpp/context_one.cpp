@@ -26,6 +26,7 @@ t_ctx1::t_ctx1(const t_schema& schema, const t_config& pivot_config)
     : t_ctxbase<t_ctx1>(schema, pivot_config)
     , m_depth(0)
     , m_depth_set(false)
+    , m_drill_node(INVALID_INDEX)
 {
 }
 
@@ -118,7 +119,13 @@ t_ctx1::select_node(t_tvidx idx)
     if (idx >= t_tvidx(m_traversal->size()))
         return;
 
-    m_traversal->select_node(idx);
+    t_tvidx ref = 0;
+    if (m_drill_node != INVALID_INDEX) {
+        ref = m_traversal->get_traversal_index(m_drill_node);
+    }
+
+    t_tvidx nidx = m_traversal->get_flat_index(ref, idx);
+    m_traversal->select_node(nidx);
 }
 
 void
@@ -129,7 +136,13 @@ t_ctx1::deselect_node(t_tvidx idx)
     if (idx >= t_tvidx(m_traversal->size()))
         return;
 
-    m_traversal->deselect_node(idx);
+    t_tvidx ref = 0;
+    if (m_drill_node != INVALID_INDEX) {
+        ref = m_traversal->get_traversal_index(m_drill_node);
+    }
+
+    t_tvidx nidx = m_traversal->get_flat_index(ref, idx);
+    m_traversal->deselect_node(nidx);
 }
 
 void
@@ -143,8 +156,13 @@ t_ctx1::clear_selection()
 std::vector<t_tvidx>
 t_ctx1::get_selected_indices() const
 {
+    t_tvidx ref = 0;
+    if (m_drill_node != INVALID_INDEX) {
+        ref = m_traversal->get_traversal_index(m_drill_node);
+    }
+
     std::vector<t_tvidx> rval;
-    m_traversal->get_selected_indices(rval);
+    m_traversal->get_selected_indices(ref, rval);
     return rval;
 }
 
@@ -323,7 +341,39 @@ t_ctx1::set_depth(t_depth depth)
 t_depth
 t_ctx1::get_depth() const
 {
-    return m_depth;
+    if (m_drill_node != INVALID_INDEX) {
+        return m_tree->last_level() - (m_tree->get_node(m_drill_node).m_depth);
+    } else {
+        return m_depth;
+    }
+}
+
+void
+t_ctx1::drill_to_child(t_index child)
+{
+    PSP_TRACE_SENTINEL();
+    PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
+    //if (idx >= t_tvidx(m_traversal->size()))
+    //    return;
+
+    // Figure out the current
+    if (m_drill_node == INVALID_INDEX) {
+        m_drill_node = 0;
+    }
+    t_tvidx nidx = m_traversal->get_traversal_index(m_drill_node);
+
+    std::vector<std::pair<t_tvidx, t_ptidx>> nodes;
+    m_traversal->get_child_indices(nidx, nodes);
+    m_drill_node = nodes[child].second;
+}
+
+void
+t_ctx1::drill_to_top()
+{
+    PSP_TRACE_SENTINEL();
+    PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
+
+    m_drill_node = INVALID_INDEX;
 }
 
 t_tscalvec
@@ -507,7 +557,12 @@ t_ctx1::get_leaf_count() const
 {
     PSP_TRACE_SENTINEL();
     PSP_VERBOSE_ASSERT(m_init, "touching uninited object");
-    return m_tree->get_num_leaves(m_depth + 1);
+    if (m_drill_node != INVALID_INDEX) {
+        t_tvidx tvroot = m_traversal->get_traversal_index(m_drill_node);
+        return m_traversal->get_num_tree_leaves(tvroot);
+    } else {
+        return m_tree->get_num_leaves(m_depth + 1);
+    }
 }
 
 t_tscalvec
@@ -519,7 +574,17 @@ t_ctx1::get_leaf_data(t_uindex start_row, t_uindex end_row, t_uindex start_col,
     t_uindex nrows = end_row - start_row;
     t_uindex stride = end_col - start_col;
 
-    t_depth depth = m_depth + 1;
+    // Starting node
+    t_tvidx tvroot = 0;
+    t_ptidx ptroot = 0;
+    t_depth depth = get_depth() + 1; //m_depth + 1;
+    t_depth final = depth;
+
+    if (m_drill_node != INVALID_INDEX) {
+        ptroot = m_drill_node;
+        tvroot = m_traversal->get_traversal_index(ptroot);
+        final += m_traversal->get_depth(tvroot) - 1;
+    }
 
     t_tscalvec values((nrows)*stride);
     t_uindex ridx = 0;
@@ -528,7 +593,7 @@ t_ctx1::get_leaf_data(t_uindex start_row, t_uindex end_row, t_uindex start_col,
 
     // Iterate by depth
     std::deque<std::pair<t_tvidx, t_ptidx>> dft;
-    dft.push_front(std::make_pair(0, 0));
+    dft.push_front(std::make_pair(tvroot, ptroot));
 
     t_uindex naggs = m_config.get_num_aggregates();
 
@@ -540,7 +605,7 @@ t_ctx1::get_leaf_data(t_uindex start_row, t_uindex end_row, t_uindex start_col,
 
         t_stnode node = m_tree->get_node(pair.second);
 
-        if (node.m_depth < depth)
+        if (node.m_depth < final)
         {
             if (node.m_depth < last_depth && last_depth != t_depth(-1))
             {
@@ -559,7 +624,7 @@ t_ctx1::get_leaf_data(t_uindex start_row, t_uindex end_row, t_uindex start_col,
             m_traversal->get_child_indices(pair.first, nodes);
             std::copy(nodes.rbegin(), nodes.rend(), std::front_inserter(dft));
         }
-        else if (node.m_depth == depth)
+        else if (node.m_depth == final)
         {
             t_uindex r_start = (ridx - start_row) * stride;
             for (t_uindex hidx = 0; hidx < pheader.size(); ++hidx)

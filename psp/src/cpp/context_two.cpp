@@ -220,7 +220,7 @@ std::vector<t_tvidx>
 t_ctx2::get_selected_indices() const
 {
     std::vector<t_tvidx> rval;
-    m_rtraversal->get_selected_indices(rval);
+    m_rtraversal->get_selected_indices(0, rval);
     return rval;
 }
 
@@ -378,7 +378,7 @@ t_ctx2::sort_by(const t_sortsvec& sortby)
     {
         return;
     }
-    m_rtraversal->sort_by(m_config, sortby, *(rtree().get()), this);
+    //m_rtraversal->sort_by(m_config, sortby, *(rtree().get()), this);
 }
 
 void

@@ -47,6 +47,9 @@ public:
     void set_depth(t_depth depth);
     t_depth get_depth() const;
 
+    void drill_to_child(t_index child);
+    void drill_to_top();
+
     t_minmax get_agg_min_max(t_uindex aggidx, t_depth depth) const;
 
     t_index get_row_idx(const t_tscalvec& path) const;
@@ -65,6 +68,7 @@ private:
     t_sortsvec m_sortby;
     t_depth m_depth;
     t_bool m_depth_set;
+    t_ptidx m_drill_node;
 };
 
 typedef std::vector<t_ctx1_sptr> t_ctx1_svec;

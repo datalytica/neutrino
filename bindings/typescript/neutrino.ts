@@ -265,6 +265,25 @@ class View {
     });
   }
 
+  drill(idx: number): void {
+    this._engine.postMessage({
+      cmd: 'drill-to-child',
+      data: {
+        name: this._name,
+        idx: idx,
+      }
+    });
+  }
+
+  drill_to_top(): void {
+    this._engine.postMessage({
+      cmd: 'drill-to-top',
+      data: {
+        name: this._name,
+      }
+    });
+  }
+
   delete() : void {
     this._engine.postMessage({
       cmd: 'delete-view',

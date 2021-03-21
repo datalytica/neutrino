@@ -88,41 +88,36 @@ t_traversal::populate_root_children(t_stree_csptr tree)
     populate_root_children(rchildren);
 }
 
-void
-t_traversal::select_node(t_tvidx idx)
+t_tvidx
+t_traversal::get_flat_index(t_tvidx ref, t_index idx) const
 {
     // Find first leaf node
-    t_index i = 0, r = 0;
+    t_tvidx i = ref, r = 0;
     for (t_index loop_end = m_nodes->size(); i < loop_end; ++i)
     {
-        t_tvnode& node = (*m_nodes)[i];
-        if (node.m_expanded) continue;
+        if ((*m_nodes)[i].m_expanded) continue;
         if (r == idx) {
-            // Select all children?
-            node.m_selected = true;
             break;
         }
         r++;
     }
+    return i;
+}
+
+void
+t_traversal::select_node(t_tvidx idx)
+{
+    t_tvnode& node = (*m_nodes)[idx];
+    // Select all children?
+    node.m_selected = true;
 }
 
 void
 t_traversal::deselect_node(t_tvidx idx)
 {
-    // Find first leaf node
-    t_index i = 0, r = 0;
-    for (t_index loop_end = m_nodes->size(); i < loop_end; ++i)
-    {
-        t_tvnode& node = (*m_nodes)[i];
-        if (node.m_expanded) continue;
-        if (r == idx) {
-            // Select all children?
-            node.m_selected = false;
-            break;
-        }
-        r++;
-    }
-
+    t_tvnode& node = (*m_nodes)[idx];
+    // Select all children?
+    node.m_selected = false;
 }
 
 void
@@ -135,10 +130,10 @@ t_traversal::clear_selection()
 }
 
 void
-t_traversal::get_selected_indices(std::vector<t_tvidx>& out_data) const
+t_traversal::get_selected_indices(t_tvidx ref, std::vector<t_tvidx>& out_data) const
 {
     t_index r = 0;
-    for (t_index i = 0, loop_end = m_nodes->size(); i < loop_end; ++i)
+    for (t_index i = ref, loop_end = m_nodes->size(); i < loop_end; ++i)
     {
         t_tvnode& node = (*m_nodes)[i];
         if (node.m_expanded) continue;

@@ -256,6 +256,20 @@ class WorkerHost {
         this._sendSnapshot(name, context);
         break;
       }
+      case 'drill-to-child': {
+        let { name, idx } = msg.data as any;
+        let context = this._context_map.get(name as Private.ViewName);
+        context.drill_to_child(idx);
+        this._sendSnapshot(name, context);
+        break;
+      }
+      case 'drill-to-top': {
+        let { name } = msg.data as any;
+        let context = this._context_map.get(name as Private.ViewName);
+        context.drill_to_top();
+        this._sendSnapshot(name, context);
+        break;
+      }
       case "shutdown": {
         this.shutdown();
         break;

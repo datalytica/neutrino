@@ -35,7 +35,7 @@ class t_traversal
 public:
     t_traversal(t_stree_csptr tree, t_bool handle_nan_sort);
 
-    void get_selected_indices(std::vector<t_tvidx>& out_data) const;
+    void get_selected_indices(t_tvidx ref, std::vector<t_tvidx>& out_data) const;
     void select_node(t_tvidx idx);
     void deselect_node(t_tvidx idx);
     void clear_selection();
@@ -61,6 +61,7 @@ public:
 
     t_depth get_depth(t_tvidx idx) const;
 
+    t_tvidx get_flat_index(t_tvidx ref, t_index idx) const;
     t_tvidx get_traversal_index(t_ptidx idx);
 
     std::vector<t_vdnode> get_view_nodes(t_tvidx bidx, t_tvidx eidx) const;
@@ -120,6 +121,7 @@ public:
 private:
     t_stree_csptr m_tree;
     std::shared_ptr<std::vector<t_tvnode>> m_nodes;
+
     t_bool m_handle_nan_sort;
 };
 
