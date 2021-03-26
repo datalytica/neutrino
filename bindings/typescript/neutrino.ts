@@ -98,7 +98,7 @@ interface ComputedColumnConfig {
   /**
    * The name of the computed column.
    */
-  name: string;
+  ocol: string;
 
   /**
    * The type of the computed column.
@@ -108,17 +108,35 @@ interface ComputedColumnConfig {
   /**
    * The input columns to compute the value.
    */
-  inputs: Array<string>;
+  icols: Array<string>;
 
   /**
    * The function to compute the calculated column.
    */
-   func: (...args: Array<any>) => any;
+  expr: string;
+}
+
+export
+interface TableOptions {
+  /**
+   * The name of the column to use as primary index.
+   */
+  index: string;
+
+  /**
+   * A map of columns to the column to use for sorting them.
+   */
+  sortby?: Map<string, string>;
+
+  /**
+   * The list of computed columns for the table.
+   */
+  computed?: Array<ComputedColumnConfig>;
 }
 
 
 class Table {
-  constructor(schema: Schema, options: {index: string, sortby?: Map<string, string>}, engine: Engine) {
+  constructor(schema: Schema, options: TableOptions, engine: Engine) {
     this._name = UUID.uuid4();
     this._engine = engine;
     this._schema = schema;
@@ -134,6 +152,7 @@ class Table {
         names: names,
         types: types,
         index: options.index,
+        computed: options.computed || [],
         sortby_map: options.sortby || new Map<string, string>(),
       }
     });
@@ -178,21 +197,11 @@ class Table {
   }
 
   addComputed(computed: Array<ComputedColumnConfig>): void {
-    // convert function definitions to strings
-    let _computed: Array<any> = [];
-    for (let { name, type, inputs, func } of computed) {
-      _computed.push({
-        name: name,
-        type: type,
-        inputs: inputs,
-        func: func.toString()
-      });
-    }
     this._engine.postMessage({
       cmd: "add-computed",
       data: {
         name: this._name,
-        computed: _computed
+        computed: computed
       }
     });
   }
@@ -320,7 +329,7 @@ class Engine {
     this._worker.postMessage(msg, {transfer});
   }
 
-  table(schema: Schema, options: {index: string, sortby?: Map<string, string>}): Table {
+  table(schema: Schema, options: TableOptions): Table {
     return new Table(schema, options, this);
   }
 

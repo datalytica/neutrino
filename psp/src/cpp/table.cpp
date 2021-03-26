@@ -600,6 +600,57 @@ t_table::filter_cpp(t_filter_op combiner, const t_ftermvec& fterms_) const
     return mask;
 }
 
+void
+t_table::fill_expr(const std::vector<t_str>& icol_names,
+                   const t_str& output_column,
+                   exprtk::symbol_table<t_float64>& symbol_table,
+                   exprtk::expression<t_float64>& expression)
+{
+    auto ocol = get_column(output_column).get();
+
+    t_colcptrvec icols;
+    for (const auto& c : icol_names)
+    {
+        icols.push_back(get_column(c).get());
+    }
+
+    t_uindex nrows = size();
+
+    // Nothing to fill if no input columns
+    if (icols.empty()) {
+        return;
+    }
+
+    t_dtype dtype = ocol->get_dtype();
+
+    for (t_uindex ridx = 0; ridx < nrows; ++ridx)
+    {
+        t_bool valid = true;
+        for (auto icol : icols)
+        {
+            if (icol->is_cleared(ridx))
+            {
+                ocol->clear(ridx, STATUS_CLEAR);
+                valid = false;
+                break;
+            }
+        }
+
+        if (valid) {
+            for (t_uindex cidx = 0; cidx < icols.size(); ++cidx) {
+                symbol_table.variable_ref(icol_names[cidx]) = icols[cidx]->get_scalar(ridx).to_double();
+            }
+
+            t_tscalar rv;
+            rv.clear();
+            t_float64 result = expression.value();
+            rv.set(result);
+            ocol->set_scalar(ridx, rv.coerce_numeric_dtype(dtype));
+        }
+    }
+}
+
+
 t_uindex
 t_table::get_capacity() const
 {

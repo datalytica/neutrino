@@ -20,6 +20,7 @@
 #include <tbb/tbb.h>
 #endif
 #include <perspective/scalar.h>
+#include <exprtk/exprtk.hpp>
 
 namespace perspective
 {
@@ -116,6 +117,13 @@ public:
     void reset();
 
     t_masksptr filter_cpp(t_filter_op combiner, const t_ftermvec& fops) const;
+
+    void fill_expr(const std::vector<t_str>& icol_names,
+                   const t_str& output_column,
+                   exprtk::symbol_table<t_float64>& symbol_table,
+                   exprtk::expression<t_float64>& expression
+                   );
+
     t_table* clone_(const t_mask& mask) const;
     t_table_sptr clone(const t_mask& mask) const;
     t_table_sptr clone() const;

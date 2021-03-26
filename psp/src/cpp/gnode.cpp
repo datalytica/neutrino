@@ -56,19 +56,14 @@ t_gnode::t_gnode(const t_gnode_recipe& recipe)
 
     m_epoch = std::chrono::high_resolution_clock::now();
 
-    for (const auto& ccol : m_custom_columns)
-    {
-        for (const auto& icol : ccol.get_icols())
-        {
-            m_expr_icols.insert(icol);
-        }
-    }
+    _compile_computed_columns();
 }
 
 t_gnode::t_gnode(const t_gnode_options& options)
     : m_mode(NODE_PROCESSING_SIMPLE_DATAFLOW)
     , m_gnode_type(options.m_gnode_type)
     , m_tblschema(options.m_port_schema.drop({"psp_op", "psp_pkey"}))
+    , m_custom_columns(options.m_custom_columns)
     , m_init(false)
     , m_id(0)
     , m_pool_cleanup([]() {})
@@ -104,6 +99,8 @@ t_gnode::t_gnode(const t_gnode_options& options)
     m_oschemas = t_schemavec{port_schema, m_tblschema, m_tblschema, m_tblschema,
         trans_schema, existed_schema};
     m_epoch = std::chrono::high_resolution_clock::now();
+
+    _compile_computed_columns();
 }
 
 t_gnode_sptr
@@ -147,6 +144,15 @@ t_gnode::init()
 
     t_port_sptr& iport = m_iports[0];
     t_table_sptr flattened = iport->get_table()->flatten();
+    for (t_index idx = 0; idx < m_custom_columns.size(); ++idx)
+    {
+        const auto& ccol = m_custom_columns[idx];
+        flattened->fill_expr(ccol.get_icols(),
+                             ccol.get_ocol(),
+                             m_symbol_table,
+                             m_expr_vec[idx]);
+    }
+
     m_init = true;
 }
 
@@ -180,6 +186,85 @@ t_gnode::_send(t_uindex portid, const t_table& fragments)
 
     t_port_sptr& iport = m_iports[portid];
     iport->send(fragments);
+}
+
+void
+t_gnode::_compile_computed_columns()
+{
+    std::unordered_map<t_str, t_uindex> ccmap;
+    for (t_uindex idx = 0; idx < m_custom_columns.size(); ++idx) {
+        const auto& ccol = m_custom_columns[idx];
+        ccmap[ccol.get_ocol()] = idx;
+
+        for (const auto& icol : ccol.get_icols())
+        {
+            m_expr_icols.insert(icol);
+            m_symbol_table.create_variable(icol);
+        }
+    }
+
+    std::vector<std::vector<t_uindex>> edges;
+    for (const auto& ccol: m_custom_columns) {
+        std::vector<t_uindex> edge_list;
+
+        for (const auto& icol : ccol.get_icols()) {
+            const auto citer = ccmap.find(icol);
+            if (citer != ccmap.end()) {
+                edge_list.push_back(citer->second);
+            }
+        }
+        edges.push_back(edge_list);
+    }
+
+    std::set<t_uindex> topo_seen;
+    t_ccol_vec ccols_sorted;
+    for (t_uindex i = 0; i < edges.size(); ++i) {
+        _edge_visit(i, edges, topo_seen, ccols_sorted);
+    }
+
+    std::cout<<"custom columns - [";
+    for (const auto ccol: m_custom_columns) { std::cout << ccol.get_ocol() << ","; }
+    std::cout<<"]" << std::endl;
+
+    std::swap(m_custom_columns, ccols_sorted);
+
+    std::cout<<"after sort     - [";
+    for (const auto ccol: m_custom_columns) { std::cout << ccol.get_ocol() << ","; }
+    std::cout<<"]" << std::endl;
+
+    // Now compile all the expressions
+    exprtk::parser<t_float64> parser;
+
+    for (const auto& ccol : m_custom_columns)
+    {
+        exprtk::expression<t_float64> expression;
+        expression.register_symbol_table(m_symbol_table);
+
+        if (!parser.compile(ccol.get_expr(), expression))
+        {
+            std::cout << "Compilation error...\n";
+            return;
+        }
+
+        m_expr_vec.push_back(expression);
+    }
+
+}
+
+void
+t_gnode::_edge_visit(t_uindex idx,
+    const std::vector<std::vector<t_uindex>>& edges,
+    std::set<t_uindex>& topo_seen,
+    t_ccol_vec& ccols_sorted)
+{
+    if (topo_seen.find(idx) != topo_seen.end()) {
+        return;
+    }
+    topo_seen.insert(idx);
+    for (auto cid: edges[idx]) {
+        _edge_visit(cid, edges, topo_seen, ccols_sorted);
+    }
+    ccols_sorted.push_back(m_custom_columns[idx]);
 }
 
 void
@@ -290,6 +375,14 @@ t_gnode::_process()
 
     if (m_state->mapping_size() == 0)
     {
+        for (t_index idx = 0; idx < m_custom_columns.size(); ++idx)
+        {
+            const auto& ccol = m_custom_columns[idx];
+            flattened->fill_expr(ccol.get_icols(),
+                                 ccol.get_ocol(),
+                                 m_symbol_table,
+                                 m_expr_vec[idx]);
+        }
         psp_log_time(repr() + " _process.init_path.post_fill_expr");
 
         m_state->update_history(flattened.get());
@@ -465,6 +558,14 @@ t_gnode::_process()
     if (!m_expr_icols.empty())
     {
         populate_icols_in_flattened(lkup, flattened);
+        for (t_index idx = 0; idx < m_custom_columns.size(); ++idx)
+        {
+            const auto& ccol = m_custom_columns[idx];
+            flattened->fill_expr(ccol.get_icols(),
+                                 ccol.get_ocol(),
+                                 m_symbol_table,
+                                 m_expr_vec[idx]);
+        }
     }
 
 #ifdef PSP_PARALLEL_FOR

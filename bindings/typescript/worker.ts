@@ -84,11 +84,15 @@ class WorkerHost {
     switch (msg.cmd) {
       case 'create-table': {
         let cfg = msg.data as any;
-        let { names, types, index } = cfg;
+        let { names, types, index, computed} = cfg;
         let name = cfg.name as Private.TableName;
 
+        for (let column of computed) {
+          column.dtype = Private.mapType(column.type);
+        }
+
         try {
-          let gnode = Module.make_gnode(names, types.map(Private.mapType), index);
+          let gnode = Module.make_gnode(names, types.map(Private.mapType), index, computed);
           cfg.gnode_id = this._pool.register_gnode(gnode);
 
           this._table_map.set(name, cfg);
@@ -166,13 +170,6 @@ class WorkerHost {
         try {
           tbl = Module.make_table(nrecords, names, types,
             cdata, cfg.index, isArrow, is_delete);
-
-          if (cfg.computed) {
-            for (let { name, type, inputs, func } of cfg.computed) {
-              let dtype = Private.mapType(type);
-              Module.table_add_computed_column(tbl, name, dtype, func, inputs);
-            }
-          }
 
           this._pool.send(cfg.gnode_id, port, tbl);
         } catch (e) {

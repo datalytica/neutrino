@@ -1,0 +1,3 @@
+[submodule "psp/src/include/exprtk"]
+	path = psp/src/include/exprtk
+	url = https://github.com/ArashPartow/exprtk

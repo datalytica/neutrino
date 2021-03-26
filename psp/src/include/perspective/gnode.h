@@ -21,6 +21,7 @@
 #include <tbb/parallel_sort.h>
 #include <tbb/tbb.h>
 #endif
+#include <exprtk/exprtk.hpp>
 #include <chrono>
 
 namespace perspective
@@ -30,6 +31,7 @@ struct PERSPECTIVE_EXPORT t_gnode_options
 {
     t_gnode_type m_gnode_type;
     t_schema m_port_schema;
+    t_ccol_vec m_custom_columns;
 };
 
 struct PERSPECTIVE_EXPORT t_gnode_recipe
@@ -160,6 +162,10 @@ private:
     void populate_icols_in_flattened(
         const std::vector<t_rlookup>& lkup, t_table_sptr& flat) const;
 
+    void _compile_computed_columns();
+    void _edge_visit(t_uindex i, const std::vector<std::vector<t_uindex>>& edges,
+            std::set<t_uindex>& topo_seen, t_ccol_vec& ccols_sorted);
+
     t_gnode_processing_mode m_mode;
     t_gnode_type m_gnode_type;
     t_schema m_tblschema;
@@ -176,6 +182,9 @@ private:
     std::set<t_str> m_expr_icols;
     std::function<void()> m_pool_cleanup;
     t_bool m_was_updated;
+
+    exprtk::symbol_table<t_float64> m_symbol_table;
+    std::vector<exprtk::expression<t_float64>> m_expr_vec;
 };
 
 template <>
