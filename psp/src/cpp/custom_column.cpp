@@ -15,14 +15,16 @@ namespace perspective
 t_custom_column::t_custom_column(const t_custom_column_recipe& ccr)
     : m_icols(ccr.m_icols)
     , m_ocol(ccr.m_ocol)
+    , m_dtype(ccr.m_dtype)
     , m_expr(ccr.m_expr)
 {
 }
 
 t_custom_column::t_custom_column(const std::vector<t_str>& icols,
-    const t_str& ocol, const t_str& expr)
+    const t_str& ocol, const t_dtype dtype, const t_str& expr)
     : m_icols(icols)
     , m_ocol(ocol)
+    , m_dtype(dtype)
     , m_expr(expr)
 {
 }
@@ -37,6 +39,12 @@ t_str
 t_custom_column::get_expr() const
 {
     return m_expr;
+}
+
+t_dtype
+t_custom_column::get_dtype() const
+{
+    return m_dtype;
 }
 
 const std::vector<t_str>&
