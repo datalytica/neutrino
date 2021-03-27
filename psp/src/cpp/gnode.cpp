@@ -222,31 +222,56 @@ t_gnode::_compile_computed_columns()
         _edge_visit(i, edges, topo_seen, ccols_sorted);
     }
 
-    std::cout<<"custom columns - [";
+    /*std::cout<<"custom columns - [";
     for (const auto ccol: m_custom_columns) { std::cout << ccol.get_ocol() << ","; }
     std::cout<<"]" << std::endl;
-
-    std::swap(m_custom_columns, ccols_sorted);
 
     std::cout<<"after sort     - [";
-    for (const auto ccol: m_custom_columns) { std::cout << ccol.get_ocol() << ","; }
-    std::cout<<"]" << std::endl;
+    for (const auto ccol: ccols_sorted) { std::cout << ccol.get_ocol() << ","; }
+    std::cout<<"]" << std::endl;*/
 
     // Now compile all the expressions
-    exprtk::parser<t_float64> parser;
+    typedef exprtk::parser<t_float64>::settings_t settings_t;
+    std::size_t compile_options = settings_t::e_replacer          +
+                                  settings_t::e_joiner            +
+                                  settings_t::e_numeric_check     +
+                                  settings_t::e_bracket_check     +
+                                  settings_t::e_sequence_check    +
+                                  settings_t::e_strength_reduction;
 
-    for (const auto& ccol : m_custom_columns)
+    exprtk::parser<t_float64> parser(compile_options);
+
+    m_custom_columns.clear();
+
+    for (const auto& ccol : ccols_sorted)
     {
         exprtk::expression<t_float64> expression;
         expression.register_symbol_table(m_symbol_table);
 
         if (!parser.compile(ccol.get_expr(), expression))
         {
-            std::cout << "Compilation error...\n";
-            return;
+
+            std::cout << "Compilation error... expression '" << ccol.get_expr() << "'\n";
+            for (std::size_t i = 0; i < parser.error_count(); ++i)
+            {
+                typedef exprtk::parser_error::type error_t;
+
+                error_t error = parser.get_error(i);
+
+                printf("Error[%02d] Position: %02d Type: [%s] Msg: %s\n",
+                    i,
+                    error.token.position,
+                    exprtk::parser_error::to_str(error.mode).c_str(),
+                    error.diagnostic.c_str());
+
+            }
+
+            // Skip this computed column
+            continue;
         }
 
         m_expr_vec.push_back(expression);
+        m_custom_columns.push_back(ccol);
     }
 
 }
