@@ -106,11 +106,6 @@ interface ComputedColumnConfig {
   type: TypeNames;
 
   /**
-   * The input columns to compute the value.
-   */
-  icols: Array<string>;
-
-  /**
    * The function to compute the calculated column.
    */
   expr: string;

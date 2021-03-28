@@ -162,9 +162,10 @@ private:
     void populate_icols_in_flattened(
         const std::vector<t_rlookup>& lkup, t_table_sptr& flat) const;
 
-    void _compile_computed_columns();
+    void _compile_computed_columns(const t_schema& tblschema, const t_ccol_vec&);
     void _edge_visit(t_uindex i, const std::vector<std::vector<t_uindex>>& edges,
-            std::set<t_uindex>& topo_seen, t_ccol_vec& ccols_sorted);
+            std::set<t_uindex>& topo_seen, const t_ccol_vec& ccols_unsorted,
+            std::vector<t_uindex>& ccols_sorted_idx);
 
     t_gnode_processing_mode m_mode;
     t_gnode_type m_gnode_type;

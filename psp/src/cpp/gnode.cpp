@@ -49,21 +49,20 @@ t_gnode::t_gnode(const t_gnode_recipe& recipe)
         m_oschemas.push_back(t_schema(s));
     }
 
+    t_ccol_vec custom_columns;
     for (const auto& cc : recipe.m_custom_columns)
     {
-        m_custom_columns.push_back(t_custom_column(cc));
+        custom_columns.push_back(t_custom_column(cc));
     }
 
     m_epoch = std::chrono::high_resolution_clock::now();
 
-    _compile_computed_columns();
+    _compile_computed_columns(m_tblschema, custom_columns);
 }
 
 t_gnode::t_gnode(const t_gnode_options& options)
     : m_mode(NODE_PROCESSING_SIMPLE_DATAFLOW)
     , m_gnode_type(options.m_gnode_type)
-    , m_tblschema(options.m_port_schema.drop({"psp_op", "psp_pkey"}))
-    , m_custom_columns(options.m_custom_columns)
     , m_init(false)
     , m_id(0)
     , m_pool_cleanup([]() {})
@@ -71,15 +70,9 @@ t_gnode::t_gnode(const t_gnode_options& options)
     PSP_TRACE_SENTINEL();
     LOG_CONSTRUCTOR("t_gnode");
 
-    std::vector<t_dtype> trans_types(m_tblschema.size());
-    for (t_uindex idx = 0; idx < trans_types.size(); ++idx)
-    {
-        trans_types[idx] = DTYPE_UINT8;
-    }
-
     t_schema port_schema(options.m_port_schema);
-    if (m_gnode_type == GNODE_TYPE_IMPLICIT_PKEYED) {
 
+    if (m_gnode_type == GNODE_TYPE_IMPLICIT_PKEYED) {
         // Make sure that gnode type is consistent with input schema
         if (port_schema.is_pkey()) {
             PSP_COMPLAIN_AND_ABORT("gnode type specified as implicit pkey, however input schema has psp_pkey column.");
@@ -91,16 +84,23 @@ t_gnode::t_gnode(const t_gnode_options& options)
         }
     }
 
-    t_schema trans_schema(m_tblschema.columns(), trans_types);
-    t_schema existed_schema(
-        std::vector<t_str>{"psp_existed"}, std::vector<t_dtype>{DTYPE_BOOL});
+    // Add custom column outputs to port schema
+    for (const auto& ccol: options.m_custom_columns) {
+        port_schema.add_column(ccol.get_ocol(), ccol.get_dtype());
+    }
+
+    m_tblschema = port_schema.drop({"psp_op", "psp_pkey"});
+
+    t_schema trans_schema(m_tblschema.columns(), std::vector<t_dtype>(m_tblschema.size(), DTYPE_UINT8));
+
+    t_schema existed_schema({"psp_existed"}, {DTYPE_BOOL});
 
     m_ischemas = t_schemavec{port_schema};
     m_oschemas = t_schemavec{port_schema, m_tblschema, m_tblschema, m_tblschema,
         trans_schema, existed_schema};
     m_epoch = std::chrono::high_resolution_clock::now();
 
-    _compile_computed_columns();
+    _compile_computed_columns(m_tblschema, options.m_custom_columns);
 }
 
 t_gnode_sptr
@@ -142,6 +142,7 @@ t_gnode::init()
         m_oports.push_back(port);
     }
 
+    /* This doesn't seem to do anything */
     t_port_sptr& iport = m_iports[0];
     t_table_sptr flattened = iport->get_table()->flatten();
     for (t_index idx = 0; idx < m_custom_columns.size(); ++idx)
@@ -188,47 +189,20 @@ t_gnode::_send(t_uindex portid, const t_table& fragments)
     iport->send(fragments);
 }
 
+
 void
-t_gnode::_compile_computed_columns()
+t_gnode::_compile_computed_columns(const t_schema& tblschema, const t_ccol_vec& custom_columns)
 {
-    std::unordered_map<t_str, t_uindex> ccmap;
-    for (t_uindex idx = 0; idx < m_custom_columns.size(); ++idx) {
-        const auto& ccol = m_custom_columns[idx];
-        ccmap[ccol.get_ocol()] = idx;
-
-        for (const auto& icol : ccol.get_icols())
-        {
-            m_expr_icols.insert(icol);
-            m_symbol_table.create_variable(icol);
+    // Load up current set of table columns into symbol table
+    m_symbol_table.clear();
+    for (const auto& col: tblschema.columns()) {
+        auto dtype = tblschema.get_dtype(col);
+        if (is_numeric_type(dtype)) {
+            m_symbol_table.create_variable(col);
+        } else {
+            m_symbol_table.create_stringvar(col);
         }
     }
-
-    std::vector<std::vector<t_uindex>> edges;
-    for (const auto& ccol: m_custom_columns) {
-        std::vector<t_uindex> edge_list;
-
-        for (const auto& icol : ccol.get_icols()) {
-            const auto citer = ccmap.find(icol);
-            if (citer != ccmap.end()) {
-                edge_list.push_back(citer->second);
-            }
-        }
-        edges.push_back(edge_list);
-    }
-
-    std::set<t_uindex> topo_seen;
-    t_ccol_vec ccols_sorted;
-    for (t_uindex i = 0; i < edges.size(); ++i) {
-        _edge_visit(i, edges, topo_seen, ccols_sorted);
-    }
-
-    /*std::cout<<"custom columns - [";
-    for (const auto ccol: m_custom_columns) { std::cout << ccol.get_ocol() << ","; }
-    std::cout<<"]" << std::endl;
-
-    std::cout<<"after sort     - [";
-    for (const auto ccol: ccols_sorted) { std::cout << ccol.get_ocol() << ","; }
-    std::cout<<"]" << std::endl;*/
 
     // Now compile all the expressions
     typedef exprtk::parser<t_float64>::settings_t settings_t;
@@ -241,9 +215,18 @@ t_gnode::_compile_computed_columns()
 
     exprtk::parser<t_float64> parser(compile_options);
 
-    m_custom_columns.clear();
+    parser.dec().collect_variables() = true;
 
-    for (const auto& ccol : ccols_sorted)
+    typedef typename exprtk::parser<t_float64>::dependent_entity_collector dec;
+
+    std::vector<std::vector<t_uindex>> edges;
+    t_ccol_vec ccols_unsorted;
+
+    std::vector<exprtk::expression<t_float64>> expr_vec;
+
+    m_expr_icols.clear();
+
+    for (const auto& ccol : custom_columns)
     {
         exprtk::expression<t_float64> expression;
         expression.register_symbol_table(m_symbol_table);
@@ -258,38 +241,81 @@ t_gnode::_compile_computed_columns()
 
                 error_t error = parser.get_error(i);
 
-                printf("Error[%02d] Position: %02d Type: [%s] Msg: %s\n",
+                printf("Error[%02lu] Position: %02lu     Type: [%s] Msg: %s\n",
                     i,
                     error.token.position,
                     exprtk::parser_error::to_str(error.mode).c_str(),
                     error.diagnostic.c_str());
 
             }
-
             // Skip this computed column
             continue;
         }
 
-        m_expr_vec.push_back(expression);
-        m_custom_columns.push_back(ccol);
+        dec::symbol_list_t symbol_list;
+        parser.dec().symbols(symbol_list);
+
+        std::vector<t_str> symbols;
+        std::transform(symbol_list.begin(), symbol_list.end(), std::back_inserter(symbols), 
+            [](const dec::symbol_t& symbol) { return symbol.first; });
+
+        expr_vec.push_back(expression);
+        ccols_unsorted.push_back(
+            t_custom_column(symbols, ccol.get_ocol(), ccol.get_dtype(), ccol.get_expr()
+        ));
+
+        std::copy(symbols.begin(), symbols.end(),
+            std::inserter(m_expr_icols, m_expr_icols.begin()));
+
+        std::vector<t_uindex> edge_list;
+        for (const auto& symbol : symbols) {
+
+            const auto citer = std::find_if(custom_columns.begin(), custom_columns.end(),
+                 [symbol](const auto& ccol) -> bool { return ccol.get_ocol() == symbol; });
+
+            if (citer != custom_columns.end()) {
+                edge_list.push_back(citer - custom_columns.begin());
+            }
+        }
+        edges.push_back(edge_list);
     }
 
+    std::set<t_uindex> topo_seen;
+    std::vector<t_uindex> ccols_sorted_idx;
+    for (t_uindex i = 0; i < edges.size(); ++i) {
+        _edge_visit(i, edges, topo_seen, ccols_unsorted, ccols_sorted_idx);
+    }
+
+    m_custom_columns.clear();
+    m_expr_vec.clear();
+    for (t_uindex idx: ccols_sorted_idx) {
+        m_custom_columns.push_back(ccols_unsorted[idx]);
+        m_expr_vec.push_back(expr_vec[idx]);
+    }
+
+    /*std::cout<<"custom columns - [";
+    for (const auto ccol: ccols_unsorted) { std::cout << ccol.get_ocol() << ","; }
+    std::cout<<"]" << std::endl;
+    std::cout<<"after sort     - [";
+    for (const auto ccol: m_custom_columns) { std::cout << ccol.get_ocol() << ","; }
+    std::cout<<"]" << std::endl;*/
 }
 
 void
 t_gnode::_edge_visit(t_uindex idx,
     const std::vector<std::vector<t_uindex>>& edges,
     std::set<t_uindex>& topo_seen,
-    t_ccol_vec& ccols_sorted)
+    const t_ccol_vec& ccols_unsorted,
+    std::vector<t_uindex>& ccols_sorted_idx)
 {
     if (topo_seen.find(idx) != topo_seen.end()) {
         return;
     }
     topo_seen.insert(idx);
     for (auto cid: edges[idx]) {
-        _edge_visit(cid, edges, topo_seen, ccols_sorted);
+        _edge_visit(cid, edges, topo_seen, ccols_unsorted, ccols_sorted_idx);
     }
-    ccols_sorted.push_back(m_custom_columns[idx]);
+    ccols_sorted_idx.push_back(idx);
 }
 
 void

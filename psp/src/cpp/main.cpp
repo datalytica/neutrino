@@ -774,17 +774,14 @@ make_gnode(val j_colnames, val j_dtypes, t_str index, val j_custom_columns)
     auto computed = vecFromJSArray<val>(j_custom_columns);
     for (auto j_cc: computed)
     {
-        std::vector<t_str> icols = vecFromJSArray<std::string>(j_cc["icols"]);
+        //std::vector<t_str> icols = vecFromJSArray<std::string>(j_cc["icols"]);
         t_str ocol = j_cc["ocol"].as<t_str>();
         t_str expr = j_cc["expr"].as<t_str>();
         t_dtype dtype = j_cc["dtype"].as<t_dtype>();
 
-        t_custom_column cc(icols, ocol, dtype, expr);
+        //t_custom_column cc(icols, ocol, dtype, expr);
+        t_custom_column cc({}, ocol, dtype, expr);
         options.m_custom_columns.push_back(cc);
-
-        // Add to schema
-        colnames.push_back(ocol);
-        dtypes.push_back(dtype);
     }
 
     t_schema port_schema(colnames, dtypes);
@@ -803,9 +800,7 @@ make_gnode(val j_colnames, val j_dtypes, t_str index, val j_custom_columns)
         options.m_port_schema = port_schema;
     }
 
-    auto rv = std::make_shared<t_gnode>(options);
-    rv->init();
-    return rv;
+    return t_gnode::build(options);
 }
 
 /**
