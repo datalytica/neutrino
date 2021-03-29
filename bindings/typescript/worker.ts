@@ -118,11 +118,13 @@ class WorkerHost {
         let name = config.name as Private.TableName;
         let table = this._table_map.get(name) as any;
         let computed = config.computed as Array<any>;
-        // rehydrate computed column functions
+
         for (let column of computed) {
-          eval("column.func = " + column.func);
+          column.dtype = Private.mapType(column.type);
         }
-        table.computed = computed;
+
+        let gnode = this._pool.get_gnode(table.gnode_id);
+        Module.gnode_add_computed(gnode, computed);
         break;
       }
       case 'update': {

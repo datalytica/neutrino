@@ -113,6 +113,7 @@ public:
     t_tscalvec get_pkeys() const;
 
     t_ccol_vec get_custom_columns() const;
+    void add_custom_columns(const t_ccol_vec& ccols);
 
     t_gnode_recipe get_recipe() const;
     t_bool has_python_dep() const;

@@ -191,6 +191,43 @@ t_gnode::_send(t_uindex portid, const t_table& fragments)
 
 
 void
+t_gnode::add_custom_columns(const t_ccol_vec& ccols)
+{
+    t_schema port_schema(m_ischemas[0]);
+
+    // Add new custom column outputs to port schema
+    for (const auto& ccol: ccols) {
+        port_schema.add_column(ccol.get_ocol(), ccol.get_dtype());
+    }
+
+    t_schema tblschema = port_schema.drop({"psp_op", "psp_pkey"});
+
+    t_schema trans_schema(tblschema.columns(), std::vector<t_dtype>(tblschema.size(), DTYPE_UINT8));
+
+    t_schema existed_schema({"psp_existed"}, {DTYPE_BOOL});
+
+    m_tblschema = tblschema;
+    m_ischemas = t_schemavec{port_schema};
+    m_oschemas = t_schemavec{port_schema, tblschema, tblschema, tblschema,
+        trans_schema, existed_schema};
+
+    // Save current custom columns
+    t_ccol_vec curr_ccols(m_custom_columns);
+    std::copy(ccols.begin(), ccols.end(), std::back_inserter(curr_ccols));
+
+    _compile_computed_columns(tblschema, curr_ccols);
+
+    // re-init gnode
+    m_iports.clear();
+    m_oports.clear();
+
+    t_table_sptr tbl = m_state->get_pkeyed_table();
+    init();
+    _send_and_process(*tbl);
+}
+
+
+void
 t_gnode::_compile_computed_columns(const t_schema& tblschema, const t_ccol_vec& custom_columns)
 {
     // Load up current set of table columns into symbol table

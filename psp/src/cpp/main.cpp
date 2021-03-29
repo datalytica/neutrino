@@ -804,6 +804,28 @@ make_gnode(val j_colnames, val j_dtypes, t_str index, val j_custom_columns)
 }
 
 /**
+ * Add computed columns to gnode
+ *
+ */
+void
+gnode_add_computed(t_gnode* gnode, val j_custom_columns)
+{
+    t_ccol_vec ccols;
+    auto computed = vecFromJSArray<val>(j_custom_columns);
+    for (auto j_cc: computed)
+    {
+        t_str ocol = j_cc["ocol"].as<t_str>();
+        t_str expr = j_cc["expr"].as<t_str>();
+        t_dtype dtype = j_cc["dtype"].as<t_dtype>();
+
+        t_custom_column cc({}, ocol, dtype, expr);
+        ccols.push_back(cc);
+    }
+
+    return gnode->add_custom_columns(ccols);
+}
+
+/**
  * Copies the internal table from a gnode
  *
  * Params
@@ -1578,13 +1600,13 @@ EMSCRIPTEN_BINDINGS(perspective)
     function("sort", &sort);
     function("make_table", &make_table);
     function("make_gnode", &make_gnode);
+    function("gnode_add_computed", &gnode_add_computed, allow_raw_pointers());
     function("clone_gnode_table", &clone_gnode_table);
     function("make_context_zero", &make_context_zero);
     function("make_context_one", &make_context_one);
     function("make_context_two", &make_context_two);
     function("scalar_to_val", &scalar_to_val);
     function("scalar_vec_to_val", &scalar_vec_to_val);
-    function("table_add_computed_column", &table_add_computed_column);
     function("set_column_nth", &set_column_nth, allow_raw_pointers());
     function("get_data_zero", &get_data<t_ctx0_sptr>);
     function("get_data_one", &get_data<t_ctx1_sptr>);

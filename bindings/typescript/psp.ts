@@ -18,12 +18,12 @@ interface PerspectiveModule extends Module {
   t_ctx_type: any;
   make_table: Function;
   make_gnode: Function;
+  gnode_add_computed: Function;
   make_context_zero: Function;
   make_context_one: Function;
   make_context_two: Function;
   scalar_vec_to_val: Function;
   scalar_to_val: Function;
-  table_add_computed_column: Function;
   sort: Function;
   fill: Function;
 }

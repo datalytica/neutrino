@@ -1,0 +1,156 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Neutrino</title>
+  <link rel="icon" href="data:,">
+  <script src="dist/js/perspective.js"></script>
+  <link rel="prefetch" href="dist/js/psp-worker.js" as="script">
+  <link rel="prefetch" href="dist/js/psp.async.wasm" as="script">
+
+  <script src="https://unpkg.com/ag-grid-community/dist/ag-grid-community.min.noStyle.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/ag-grid-community/dist/styles/ag-grid.css">
+  <link rel="stylesheet" href="https://unpkg.com/ag-grid-community/dist/styles/ag-theme-balham.css">
+</head>
+<body>
+  <div id="myGrid" style="height:calc(100vh - 16px);" class="ag-theme-balham"></div>
+
+  <script>
+    let engine = new perspective.Engine();
+
+    let index = "desk:ticker";
+    let schema = {
+      "desk:ticker": "string",
+      "desk": "string",
+      "ticker": "string",
+      "sod": "integer",
+      "position": "integer",
+      "pos_delta": "float",
+      "lastUpdate": "datetime"
+    };
+
+    let table = engine.table(schema, { index: index, computed: [
+      {
+        "ocol": "pos_delta",
+        "type": "integer",
+        "expr": "(position - sod)"
+      }]}
+    );
+
+    // Add computed column in 5 sec
+    setTimeout(() => {
+    /*  table.addComputed([{
+        "ocol": "sod2",
+        "type": "integer",
+        "expr": "posdelta + pos"        
+      }]);*/
+    }, 5000)
+
+
+    /*
+     *  Pump data into table
+     */
+    let DESKS = ["Homer", "Marge", "Bart", "Lisa", "Maggie", "Moe"];
+    let TICKERS = ["AAPL.N", "AMZN.N", "QQQ.Z", "NVDA.N", "TSLA.N", "FB.N", "GOOGL.N", "PCLN.N"];
+
+    let insert = (first) => {
+      let rows = [];
+      for (let x = 0; x < 2; x++) {
+        for (let y = 0; y < TICKERS.length; y++) {
+          let desk = DESKS[x];
+          let ticker = TICKERS[y];
+          let desk_ticker = `${desk}:${ticker}`;
+
+          row = {
+            "desk:ticker": desk_ticker,
+            "position": Math.random() * 5e4,
+            "lastUpdate": new Date()
+          };
+
+          if (first) {
+            row["sod"] = Math.random() * 5e4;
+            row["desk"] =  desk;
+            row["ticker"] = ticker;
+          }
+
+          rows.push(row);
+        }
+        table.update(rows);
+      }
+    }
+
+    insert(true);
+    setInterval(() => {
+      insert(false);
+    }, 2000);
+
+
+    /*
+     *  Configure Ag-Grid
+     */
+
+    function dateFormatter(params) {
+      let date = new Date(params.value);
+      return date.toLocaleString();
+    }
+    function onFirstDataRendered(params) {
+      params.api.sizeColumnsToFit();
+    };
+
+    // specify the columns
+    let columnDefs = [];
+    for (const col in schema) {
+      let columnDef = {headerName: col, field: col};
+      switch(schema[col]) {
+        case 'integer':
+        case 'float':
+          columnDef['type'] = 'numericColumn';
+          break;
+        case 'date':
+        case 'datetime':
+          columnDef['valueFormatter'] = dateFormatter;
+          break;
+      }
+      columnDefs.push(columnDef);
+    }
+
+    // let the grid know which columns to use
+    let gridOptions = {
+      defaultColDef: {
+        //sresizable: true,
+        //width: 100,
+      },
+      columnDefs: columnDefs,
+      onFirstDataRendered: onFirstDataRendered,
+    };
+
+    // lookup the container we want the Grid to use
+    let eGridDiv = document.querySelector('#myGrid');
+
+    // create the grid passing in the div to use together with the columns & data we want to use
+    new agGrid.Grid(eGridDiv, gridOptions);
+
+
+    /*
+     *  Setup 0D view
+     */
+
+    let view = table.view({});
+    view.subscribe((result) => {
+      let data = [];
+      let header = result.header;
+      for (let r = 0; r < result.data.length; ++r) {
+        let record = {};
+        let row = result.data[r];
+        for (let c = 0; c < header.length; ++c) {
+          record[header[c]] = row[c];
+        }
+        data.push(record);
+      }
+      gridOptions.api.setRowData(data);
+      console.log(result);
+    })
+    
+  </script>
+</body>
+</html>
