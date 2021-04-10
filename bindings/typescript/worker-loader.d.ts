@@ -1,8 +1,8 @@
 // typings/custom.d.ts
-declare module "worker-loader?name=worker.js!*" {
-    class NeutrinoPWorker extends Worker {
+declare module "worker-loader!*" {
+    class NeutrinoWorker extends Worker {
       constructor();
     }
   
     export = NeutrinoWorker;
-  }
+}

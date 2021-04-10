@@ -24,13 +24,11 @@ module.exports = {
     extensions: ['.ts', '.js'],
   },
   plugins: [
-    new CopyPlugin([
-        {
-            from: resolve(__dirname, 'psp', build, 'install', 'psp.async.wasm'),
-        }
-    ],
-    { logLevel: 'warn' }
-    ),
+    new CopyPlugin({
+      patterns: [
+        { from: resolve(__dirname, 'psp', build, 'install', 'psp.async.wasm'),},
+      ],
+    }),
   ],
   module: {
     rules: [
@@ -41,7 +39,7 @@ module.exports = {
     minimize: true,
     minimizer: [new TerserPlugin({
       parallel: true,
-      sourceMap: true,
+      //sourceMap: true,
       terserOptions: {
         output: {
           ascii_only: true,

@@ -1,4 +1,5 @@
-import NeutrinoWorker = require('worker-loader?name=worker.js!./worker');
+import NeutrinoWorker from 'worker-loader!./worker';
+
 import {
   UUID
 } from './uuid';
