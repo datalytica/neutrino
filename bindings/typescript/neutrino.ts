@@ -131,168 +131,6 @@ interface TableOptions {
 }
 
 
-class Table {
-  constructor(schema: Schema, options: TableOptions, engine: Engine) {
-    this._name = UUID.uuid4();
-    this._engine = engine;
-    this._schema = schema;
-
-    // generate expanded schema
-    let names = Object.keys(schema);
-    let types: Array<TypeName> = names.map( (name: string) => schema[name] );
-
-    this._engine.postMessage({
-      cmd: "create-table",
-      data: {
-        name: this._name,
-        names: names,
-        types: types,
-        index: options.index,
-        computed: options.computed || [],
-        sortby_map: options.sortby || new Map<string, string>(),
-      }
-    });
-  }
-
-  delete() : void {
-    this._engine.postMessage({
-      cmd: 'delete-table',
-      data: {
-        name: this._name,
-      }
-    });
-  }
-
-  schema(): Promise<Schema> {
-    return new Promise((resolve, reject) : void => {
-      resolve(this._schema);
-    });
-  }
-
-  update(records: any[] | ArrayBuffer) {
-    let data = {
-      name: this._name,
-      records: records
-    };
-
-    if (this._engine.transferable && records instanceof ArrayBuffer) {
-      this._engine.postMessage({
-        cmd: "update",
-        data: data
-      }, [records]);
-    } else {
-      this._engine.postMessage({
-        cmd: "update",
-        data: data
-      });
-    }
-  }
-
-  view(config: ViewConfig) : View {
-    return new View(this._name, config, this._engine);
-  }
-
-  addComputed(computed: Array<ComputedColumnConfig>): void {
-    this._engine.postMessage({
-      cmd: "add-computed",
-      data: {
-        name: this._name,
-        computed: computed
-      }
-    });
-  }
-
-  private _name: Private.TableName;
-  private _engine: Engine;
-  private _schema: Schema
-}
-
-
-class View {
-  constructor(tableName: Private.TableName, config: ViewConfig, engine: Engine) {
-    this._name = UUID.uuid4();
-    this._tableName = tableName;
-    this._engine = engine;
-
-    this._engine.postMessage({
-      cmd: "create-view",
-      data: {
-        name: this._name,
-        table_name: tableName,
-        ...config
-      }
-    });
-  }
-
-  subscribe(callback: Subscription) : void {
-    this._engine.addViewSubscription(this._name, callback);
-  }
-
-  set_depth(depth: number, isColumn: boolean) : void {
-    this._engine.postMessage({
-      cmd: 'set-view-depth',
-      data: {
-        name: this._name,
-        depth: depth,
-        isColumn: isColumn
-      }
-    });
-  }
-
-  clear_selection(): void {
-    this._engine.postMessage({
-      cmd: 'clear-selection',
-      data: {
-        name: this._name,
-      }
-    });
-  }
-
-  select(start: number, end: number): void {
-    this._engine.postMessage({
-      cmd: 'select-node',
-      data: {
-        name: this._name,
-        start: start,
-        end: end
-      }
-    });
-  }
-
-  deselect(start: number, end: number): void {
-    this._engine.postMessage({
-      cmd: 'deselect-node',
-      data: {
-        name: this._name,
-        start: start,
-        end: end
-      }
-    });
-  }
-
-  delete() : void {
-    this._engine.postMessage({
-      cmd: 'delete-view',
-      data: {
-        name: this._name,
-        table_name: this._tableName
-      }
-    });
-    this._engine.removeViewSubscriptions(this._name);
-  }
-
-  to_flat() : Promise<FlatResult> {
-    return new Promise( (resolve, reject) : void => {
-      //resolve();
-    });
-  }
-
-  private _name: Private.ViewName;
-  private _tableName: Private.TableName;
-  private _engine: Engine;
-}
-
-
 export
 class Engine {
 
@@ -325,8 +163,8 @@ class Engine {
     this._worker.postMessage(msg, {transfer});
   }
 
-  table(schema: Schema, options: TableOptions): Table {
-    return new Table(schema, options, this);
+  table(schema: Schema, options: TableOptions): Engine.Table {
+    return new Private.Table(schema, options, this);
   }
 
   addViewSubscription(name: Private.ViewName, subscription: Subscription) : void {
@@ -361,7 +199,179 @@ class Engine {
   }
 }
 
+export
+namespace Engine {
+
+  export type Table = InstanceType<typeof Private.Table>
+  export type View = InstanceType<typeof Private.View>
+
+}
+
 namespace Private {
   export type TableName = string;
   export type ViewName = string;
+
+  export
+  class Table {
+    constructor(schema: Schema, options: TableOptions, engine: Engine) {
+      this._name = UUID.uuid4();
+      this._engine = engine;
+      this._schema = schema;
+
+      // generate expanded schema
+      let names = Object.keys(schema);
+      let types: Array<TypeName> = names.map( (name: string) => schema[name] );
+
+      this._engine.postMessage({
+        cmd: "create-table",
+        data: {
+          name: this._name,
+          names: names,
+          types: types,
+          index: options.index,
+          computed: options.computed || [],
+          sortby_map: options.sortby || new Map<string, string>(),
+        }
+      });
+    }
+
+    delete() : void {
+      this._engine.postMessage({
+        cmd: 'delete-table',
+        data: {
+          name: this._name,
+        }
+      });
+    }
+
+    schema(): Promise<Schema> {
+      return new Promise((resolve, reject) : void => {
+        resolve(this._schema);
+      });
+    }
+
+    update(records: any[] | ArrayBuffer) {
+      let data = {
+        name: this._name,
+        records: records
+      };
+
+      if (this._engine.transferable && records instanceof ArrayBuffer) {
+        this._engine.postMessage({
+          cmd: "update",
+          data: data
+        }, [records]);
+      } else {
+        this._engine.postMessage({
+          cmd: "update",
+          data: data
+        });
+      }
+    }
+
+    view(config: ViewConfig) : View {
+      return new Private.View(this._name, config, this._engine);
+    }
+
+    addComputed(computed: Array<ComputedColumnConfig>): void {
+      this._engine.postMessage({
+        cmd: "add-computed",
+        data: {
+          name: this._name,
+          computed: computed
+        }
+      });
+    }
+
+    private _name: Private.TableName;
+    private _engine: Engine;
+    private _schema: Schema
+  }
+
+  export
+  class View {
+    constructor(tableName: Private.TableName, config: ViewConfig, engine: Engine) {
+      this._name = UUID.uuid4();
+      this._tableName = tableName;
+      this._engine = engine;
+
+      this._engine.postMessage({
+        cmd: "create-view",
+        data: {
+          name: this._name,
+          table_name: tableName,
+          ...config
+        }
+      });
+    }
+
+    subscribe(callback: Subscription) : void {
+      this._engine.addViewSubscription(this._name, callback);
+    }
+
+    set_depth(depth: number, isColumn: boolean) : void {
+      this._engine.postMessage({
+        cmd: 'set-view-depth',
+        data: {
+          name: this._name,
+          depth: depth,
+          isColumn: isColumn
+        }
+      });
+    }
+
+    clear_selection(): void {
+      this._engine.postMessage({
+        cmd: 'clear-selection',
+        data: {
+          name: this._name,
+        }
+      });
+    }
+
+    select(start: number, end: number): void {
+      this._engine.postMessage({
+        cmd: 'select-node',
+        data: {
+          name: this._name,
+          start: start,
+          end: end
+        }
+      });
+    }
+
+    deselect(start: number, end: number): void {
+      this._engine.postMessage({
+        cmd: 'deselect-node',
+        data: {
+          name: this._name,
+          start: start,
+          end: end
+        }
+      });
+    }
+
+    delete() : void {
+      this._engine.postMessage({
+        cmd: 'delete-view',
+        data: {
+          name: this._name,
+          table_name: this._tableName
+        }
+      });
+      this._engine.removeViewSubscriptions(this._name);
+    }
+
+    to_flat() : Promise<FlatResult> {
+      return new Promise( (resolve, reject) : void => {
+        //resolve();
+      });
+    }
+
+    private _name: Private.ViewName;
+    private _tableName: Private.TableName;
+    private _engine: Engine;
+  }
+
+
 }
